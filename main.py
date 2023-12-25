@@ -14,6 +14,22 @@ def run() -> None:
             user_message = user_input()
             conversation.append({"role": "user", "content": user_message})
         else:
+            conversation.append(
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": ai_action.tool_id,
+                            "type": "function",
+                            "function": {
+                                "name": "execute_shell",
+                                "arguments": ai_action.tool.model_dump_json(),
+                            },
+                        }
+                    ],
+                }
+            )
             command_list = "\n".join(ai_action.tool.commands)
             print_system("The following commands will be executed: ")
             print_system()
@@ -24,11 +40,18 @@ def run() -> None:
                 conversation.append(
                     {
                         "role": "tool",
-                        "content": f"Executed the following commands: {command_list}",
+                        "content": "Commands executed successfully.",
                         "tool_call_id": ai_action.tool_id,
                     }
                 )
             else:
+                conversation.append(
+                    {
+                        "role": "tool",
+                        "content": f"Commands not executed. Reason :: user feedback.",
+                        "tool_call_id": ai_action.tool_id,
+                    }
+                )
                 conversation.append({"role": "user", "content": user_message})
 
 
