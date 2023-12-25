@@ -36,14 +36,23 @@ def run() -> None:
             print_system(command_list)
             user_message = user_input()
             if user_message == "y":
-                execute_shell(command_list)
-                conversation.append(
-                    {
-                        "role": "tool",
-                        "content": "Commands executed successfully.",
-                        "tool_call_id": ai_action.tool_id,
-                    }
-                )
+                completed = execute_shell(command_list)
+                if completed.returncode == 0:
+                    conversation.append(
+                        {
+                            "role": "tool",
+                            "content": "Commands executed successfully.",
+                            "tool_call_id": ai_action.tool_id,
+                        }
+                    )
+                else:
+                    conversation.append(
+                        {
+                            "role": "tool",
+                            "content": f"There was an error executing the commands :: {completed.stderr}",
+                            "tool_call_id": ai_action.tool_id,
+                        }
+                    )
             else:
                 conversation.append(
                     {
@@ -55,10 +64,9 @@ def run() -> None:
                 conversation.append({"role": "user", "content": user_message})
 
 
-def execute_shell(command_list: str):
+def execute_shell(command_list: str) -> subprocess.CompletedProcess:
     command_list = "cd sandbox\n" + command_list
-    x = subprocess.run(command_list, shell=True, executable="/bin/bash")
-    print_system(str(x))
+    return subprocess.run(command_list, shell=True, executable="/bin/bash")
 
 
 if __name__ == "__main__":
