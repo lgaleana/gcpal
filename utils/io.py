@@ -1,4 +1,4 @@
-def print_system(message) -> str:
+def print_system(message="") -> str:
     print(f"\033[0;0m{message}")
     return message
 

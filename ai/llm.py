@@ -1,11 +1,19 @@
 from typing import Any, Dict, List, Optional, Tuple
 
+import json
 from dotenv import load_dotenv
+from pydantic import BaseModel
 from openai import OpenAI
 
 from utils.io import print_assistant
 
 load_dotenv()
+
+
+class Tool(BaseModel):
+    id: str
+    arguments: Dict[str, Any]
+
 
 client = OpenAI()
 
@@ -47,7 +55,7 @@ def call(
     )
 
 
-def next(
+def gen(
     messages: List[Dict[str, str]],
     model: Optional[str] = None,
     temperature: Optional[float] = None,
@@ -65,7 +73,7 @@ def stream_next(
     stop: Optional[str] = None,
     tools: Optional[List] = None,
     tool_choice="auto",
-) -> Tuple[Optional[str], Optional[str]]:
+) -> Tuple[Optional[str], Optional[Tool]]:
     response = call(
         messages,
         model,
@@ -76,29 +84,30 @@ def stream_next(
         tool_choice=tool_choice,
     )
 
-    message = None
-    tool = None
+    first_chunk = next(response)
+    if first_chunk.choices[0].delta.content is not None:
+        return stream_text(first_chunk, response), None
+    return None, collect_tool(first_chunk, response)
+
+
+def stream_text(first_chunk, response):
+    message = first_chunk.choices[0].delta.content
+    print_assistant(first_chunk.choices[0].delta.content, end="", flush=True)
     for chunk in response:
-        delta = chunk.choices[0].delta
-        if delta.content:
-            message = stream(delta, message)
-        elif delta.tool_calls:
-            tool = collect_tool(delta, tool)
+        if chunk.choices[0].delta.content is not None:
+            message += chunk.choices[0].delta.content
+            print_assistant(chunk.choices[0].delta.content, end="", flush=True)
     print_assistant()
-    return message, tool
-
-
-def stream(delta, message: Optional[str]):
-    if message is None:
-        message = ""
-    message += delta.content
-    print_assistant(delta.content, end="", flush=True)
     return message
 
 
-def collect_tool(delta, tool: Optional[str]):
-    if tool is None:
-        tool = ""
-    tool += delta.tool_calls[0].function.arguments
+def collect_tool(first_chunk, response) -> Tool:
+    tool_id = first_chunk.choices[0].delta.tool_calls[0].id
+    arguments = first_chunk.choices[0].delta.tool_calls[0].function.arguments
     print_assistant(".", end="", flush=True)
-    return tool
+    for chunk in response:
+        if chunk.choices[0].delta.tool_calls:
+            arguments += chunk.choices[0].delta.tool_calls[0].function.arguments
+        print_assistant(".", end="", flush=True)
+    print_assistant()
+    return Tool(id=tool_id, arguments=json.loads(arguments))

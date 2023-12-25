@@ -1,10 +1,8 @@
-import json
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 from ai import llm
-from utils.io import print_system
 
 
 class ExecuteShelParams(BaseModel):
@@ -25,6 +23,7 @@ TOOLS = [
 
 class NextAction(BaseModel):
     message: Optional[str]
+    tool_id: Optional[str]
     tool: Optional[ExecuteShelParams]
 
 
@@ -34,11 +33,12 @@ Say hi."""
 
 
 def next_action(conversation: List[Dict[str, str]]) -> NextAction:
-    message, arguments = llm.stream_next(
+    message, tool = llm.stream_next(
         [{"role": "system", "content": PROMPT}] + conversation,
         tools=TOOLS,
     )
     return NextAction(
         message=message,
-        tool=ExecuteShelParams.parse_raw(arguments) if arguments else None,
+        tool_id=tool.id if tool else None,
+        tool=ExecuteShelParams.parse_obj(tool.arguments) if tool else None,
     )
