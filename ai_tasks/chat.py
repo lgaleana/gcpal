@@ -32,7 +32,7 @@ TOOLS = [
         "function": {
             "name": Action.PERSIST_CONVERSATION,
             "description": "Persist the whole conversation history",
-            "parameters": {},
+            "parameters": None,
         },
     },
 ]
@@ -54,12 +54,37 @@ You can execute shell commands inside the VM.
 Say hi."""
 
 
-def _next_action(conversation: Conversation) -> NextAction:
+def next_action(conversation: Conversation) -> NextAction:
     print_system(conversation)
-    next = llm.stream_next(
+    ai_response = llm.stream_next(
         [{"role": "system", "content": PROMPT}] + conversation,
         tools=TOOLS,
     )
+    try:
+        return _parse_ai_response(ai_response)
+    except ValidationError as e:
+        print_system(e)
+        print_system(traceback.format_tb(e.__traceback__))
+        ai_response = llm.stream_next(
+            Conversation(
+                conversation
+                + [
+                    {
+                        "role": "system",
+                        "content": (
+                            f"Error parsing function parameters :: {e}\n"
+                            f"Got :: {ai_response.arguments}\n"  # type: ignore
+                            "Please fix the error."
+                        ),
+                    }
+                ]
+            ),
+            tools=TOOLS,
+        )
+        return _parse_ai_response(ai_response)
+
+
+def _parse_ai_response(next: Union[str, llm.RawTool]) -> NextAction:
     if isinstance(next, str):
         return NextAction(name=Action.CHAT, payload=next)
     if next.name == Action.EXECUTE_SHELL:
@@ -79,15 +104,3 @@ def _next_action(conversation: Conversation) -> NextAction:
             arguments=None,
         ),
     )
-
-
-def next_action(conversation: Conversation) -> NextAction:
-    try:
-        return _next_action(conversation)
-    except ValidationError as e:
-        print_system(e)
-        print_system(traceback.format_tb(e.__traceback__))
-        conversation.add_system(
-            f"Error parsing function arguments :: {e}\n\nPlease try again."
-        )
-        return _next_action(conversation)

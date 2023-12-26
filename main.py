@@ -36,8 +36,6 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                 if user_message == "y":
                     process = execute_shell(ai_action.payload.arguments.commands)
                     if process.returncode == 0:
-                        print_system()
-                        print_system(process.stdout)
                         conversation.add_tool_response(
                             tool_id=ai_action.payload.id,
                             message=f"Commands executed successfully. Stdout :: {process.stdout}",
