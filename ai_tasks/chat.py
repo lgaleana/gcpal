@@ -33,6 +33,7 @@ Say hi."""
 
 
 def next_action(conversation: List[Dict[str, str]]) -> NextAction:
+    print(conversation)
     message, tool = llm.stream_next(
         [{"role": "system", "content": PROMPT}] + conversation,
         tools=TOOLS,
