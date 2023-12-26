@@ -1,12 +1,13 @@
 import subprocess
+from typing import Any, Dict, List
 
 from ai_tasks import chat
 from utils.conversation import Conversation
 from utils.io import user_input, print_system
 
 
-def run() -> None:
-    conversation = Conversation()
+def run(_conversation: List[Dict[str, Any]] = []) -> None:
+    conversation = Conversation(_conversation)
     while True:
         ai_action = chat.next_action(conversation)
 

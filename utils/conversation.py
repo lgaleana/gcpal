@@ -2,6 +2,9 @@ from typing import Any, Dict, List
 
 
 class Conversation(List[Dict[str, Any]]):
+    def __init__(self, iterable: List[Dict[str, Any]] = []):
+        super().__init__(iterable)
+
     def add_assistant(self, message: str) -> None:
         self.append({"role": "assistant", "content": message})
 
