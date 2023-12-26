@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from main import run
+from utils.conversation import Conversation
 
 
 class Tests(TestCase):
@@ -115,3 +116,11 @@ class Tests(TestCase):
                 {"role": "user", "content": "persist conversation"},
             ]
         )
+
+    def test_load_conversation(self):
+        conversation = Conversation.load()
+        conversation.add_assistant(
+            "Hello! How can I assist you with your software development today?"
+        )
+        conversation.add_user("Show me the contents of main.py")
+        run(conversation)

@@ -39,7 +39,7 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                     else:
                         conversation.add_tool_response(
                             tool_id=ai_action.payload.id,
-                            message=f"There was an error executing the commands :: {completed.stderr}",
+                            message=f"There was an error executing the commands :: {completed.stderr}.",
                         )
                 else:
                     conversation.add_tool_response(
@@ -48,9 +48,15 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                     )
                     conversation.add_user(user_message)
             else:
+                conversation.add_tool_response(
+                    tool_id=ai_action.payload.id,
+                    message="Conversation persisted successfully.",
+                )
+                conversation.add_system("Conversation resumed. Say hi.")
                 print_system("Converstion to persist: ")
                 print_system()
                 print_system(json.dumps(conversation, indent=2))
+                conversation.dump()
                 break
 
 
@@ -60,4 +66,4 @@ def execute_shell(command_list: str) -> subprocess.CompletedProcess:
 
 
 if __name__ == "__main__":
-    run()
+    run(Conversation.load())

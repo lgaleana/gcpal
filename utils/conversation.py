@@ -1,3 +1,5 @@
+import json
+
 from typing import Any, Dict, List
 
 
@@ -34,3 +36,15 @@ class Conversation(List[Dict[str, Any]]):
 
     def add_tool_response(self, tool_id: str, message: str) -> None:
         self.append({"role": "tool", "content": message, "tool_call_id": tool_id})
+
+    @staticmethod
+    def load() -> "Conversation":
+        from db.conversation import payload
+
+        return Conversation(payload)
+
+    def dump(self) -> None:
+        payload_str = "payload = " + json.dumps(self, indent=4)
+        payload_str = payload_str.replace(": null\n", ": None\n")
+        with open("db/conversation.py", "w") as file:
+            file.write(payload_str)
