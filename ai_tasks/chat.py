@@ -1,8 +1,11 @@
-from typing import Dict, List, Optional, Union
+import traceback
+from typing import List, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from ai import llm
+from utils.conversation import Conversation
+from utils.io import print_system
 
 
 class Action:
@@ -11,7 +14,7 @@ class Action:
     PERSIST_CONVERSATION = "persist_conversation"
 
 
-class ExecuteShelParams(BaseModel):
+class ExecuteShellParams(BaseModel):
     commands: List[str] = Field(description="List of shell commands to execute")
 
 
@@ -21,7 +24,7 @@ TOOLS = [
         "function": {
             "name": Action.EXECUTE_SHELL,
             "description": "Executes shell commands in MacOS",
-            "parameters": ExecuteShelParams.schema(),
+            "parameters": ExecuteShellParams.schema(),
         },
     },
     {
@@ -36,7 +39,7 @@ TOOLS = [
 
 
 class Tool(llm.RawTool):
-    arguments: Union[ExecuteShelParams, None]
+    arguments: Union[ExecuteShellParams, None]
 
 
 class NextAction(BaseModel):
@@ -45,12 +48,14 @@ class NextAction(BaseModel):
 
 
 PROMPT = """You are a helpful AI assistant that helps software engineers build software.
+Your build environment is a Google Cloud Compute Enginer VM.
+You can execute shell commands inside the VM.
 
 Say hi."""
 
 
-def next_action(conversation: List[Dict[str, str]]) -> NextAction:
-    print(conversation)
+def _next_action(conversation: Conversation) -> NextAction:
+    print_system(conversation)
     next = llm.stream_next(
         [{"role": "system", "content": PROMPT}] + conversation,
         tools=TOOLS,
@@ -63,7 +68,7 @@ def next_action(conversation: List[Dict[str, str]]) -> NextAction:
             payload=Tool(
                 id=next.id,
                 name=next.name,
-                arguments=ExecuteShelParams.parse_obj(next.arguments),
+                arguments=ExecuteShellParams.parse_obj(next.arguments),
             ),
         )
     return NextAction(
@@ -74,3 +79,15 @@ def next_action(conversation: List[Dict[str, str]]) -> NextAction:
             arguments=None,
         ),
     )
+
+
+def next_action(conversation: Conversation) -> NextAction:
+    try:
+        return _next_action(conversation)
+    except ValidationError as e:
+        print_system(e)
+        print_system(traceback.format_tb(e.__traceback__))
+        conversation.add_system(
+            f"Error parsing function arguments :: {e}\n\nPlease try again."
+        )
+        return _next_action(conversation)

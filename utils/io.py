@@ -1,4 +1,7 @@
-def print_system(message="") -> str:
+from typing import Any
+
+
+def print_system(message: Any = "") -> str:
     print(f"\033[0;0m{message}")
     return message
 

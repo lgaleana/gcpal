@@ -1,13 +1,10 @@
 from typing import Any, Dict, List, Optional, Union
 
 import json
-from dotenv import load_dotenv
 from pydantic import BaseModel
 from openai import OpenAI
 
 from utils.io import print_assistant
-
-load_dotenv()
 
 
 class RawTool(BaseModel):

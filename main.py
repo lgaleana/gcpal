@@ -1,6 +1,11 @@
 import json
+import os
 import subprocess
 from typing import Any, Dict, List
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from ai_tasks import chat
 from utils.conversation import Conversation
@@ -26,20 +31,21 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                 assert ai_action.payload.arguments
                 command_list = "\n".join(ai_action.payload.arguments.commands)
                 print_system("The following commands will be executed: ")
-                print_system()
-                print_system(command_list)
+                print_system(f"```\n{command_list}\n```")
                 user_message = user_input()
                 if user_message == "y":
-                    completed = execute_shell(command_list)
-                    if completed.returncode == 0:
+                    process = execute_shell(ai_action.payload.arguments.commands)
+                    if process.returncode == 0:
+                        print_system()
+                        print_system(process.stdout)
                         conversation.add_tool_response(
                             tool_id=ai_action.payload.id,
-                            message="Commands executed successfully.",
+                            message=f"Commands executed successfully. Stdout :: {process.stdout}",
                         )
                     else:
                         conversation.add_tool_response(
                             tool_id=ai_action.payload.id,
-                            message=f"There was an error executing the commands :: {completed.stderr}.",
+                            message=f"There was an error executing the commands :: {process.stderr}",
                         )
                 else:
                     conversation.add_tool_response(
@@ -60,9 +66,22 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                 break
 
 
-def execute_shell(command_list: str) -> subprocess.CompletedProcess:
-    command_list = "cd sandbox\n" + command_list
-    return subprocess.run(command_list, shell=True, executable="/bin/bash")
+def execute_shell(commands: List[str]) -> subprocess.CompletedProcess:
+    gcp_zone = os.getenv("GCP_ZONE")
+    gcp_project = os.getenv("GCP_PROJECT")
+    assert gcp_zone and gcp_project, "GCP info not found"
+    gcp_commands = [
+        f"gcloud compute ssh --zone {gcp_zone} --project {gcp_project} -- command {command}"
+        for command in commands
+    ]
+    gcp_command_list = "\n".join(gcp_commands)
+    return subprocess.run(
+        gcp_command_list,
+        shell=True,
+        executable="/bin/bash",
+        capture_output=True,
+        text=True,
+    )
 
 
 if __name__ == "__main__":
