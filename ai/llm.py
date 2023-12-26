@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Union
 
 import json
 from dotenv import load_dotenv
@@ -10,8 +10,9 @@ from utils.io import print_assistant
 load_dotenv()
 
 
-class Tool(BaseModel):
+class RawTool(BaseModel):
     id: str
+    name: str
     arguments: Dict[str, Any]
 
 
@@ -73,7 +74,7 @@ def stream_next(
     stop: Optional[str] = None,
     tools: Optional[List] = None,
     tool_choice="auto",
-) -> Tuple[Optional[str], Optional[Tool]]:
+) -> Union[str, RawTool]:
     response = call(
         messages,
         model,
@@ -86,11 +87,11 @@ def stream_next(
 
     first_chunk = next(response)
     if first_chunk.choices[0].delta.content is not None:
-        return stream_text(first_chunk, response), None
-    return None, collect_tool(first_chunk, response)
+        return stream_text(first_chunk, response)
+    return collect_tool(first_chunk, response)
 
 
-def stream_text(first_chunk, response):
+def stream_text(first_chunk, response) -> str:
     message = first_chunk.choices[0].delta.content
     print_assistant(first_chunk.choices[0].delta.content, end="", flush=True)
     for chunk in response:
@@ -101,8 +102,9 @@ def stream_text(first_chunk, response):
     return message
 
 
-def collect_tool(first_chunk, response) -> Tool:
+def collect_tool(first_chunk, response) -> RawTool:
     tool_id = first_chunk.choices[0].delta.tool_calls[0].id
+    tool_name = first_chunk.choices[0].delta.tool_calls[0].function.name
     arguments = first_chunk.choices[0].delta.tool_calls[0].function.arguments
     print_assistant(".", end="", flush=True)
     for chunk in response:
@@ -110,4 +112,4 @@ def collect_tool(first_chunk, response) -> Tool:
             arguments += chunk.choices[0].delta.tool_calls[0].function.arguments
         print_assistant(".", end="", flush=True)
     print_assistant()
-    return Tool(id=tool_id, arguments=json.loads(arguments))
+    return RawTool(id=tool_id, name=tool_name, arguments=json.loads(arguments))
