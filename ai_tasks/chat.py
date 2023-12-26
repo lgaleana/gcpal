@@ -47,9 +47,11 @@ class NextAction(BaseModel):
     payload: Union[str, Tool]
 
 
-PROMPT = """You are a helpful AI assistant that helps software engineers build software.
-Your build environment is a Google Cloud Compute Enginer VM.
+PROMPT = """You are a helpful AI assistant that helps software engineers build software, using the best software engineering practices.
+
+Your build environment is a Google Cloud Compute Engine VM.
 You can execute shell commands inside the VM.
+All shell commands will be executed from within the home directory.
 
 Say hi."""
 

@@ -68,13 +68,9 @@ def execute_shell(commands: List[str]) -> subprocess.CompletedProcess:
     gcp_zone = os.getenv("GCP_ZONE")
     gcp_project = os.getenv("GCP_PROJECT")
     assert gcp_zone and gcp_project, "GCP info not found"
-    gcp_commands = [
-        f"gcloud compute ssh --zone {gcp_zone} --project {gcp_project} -- command {command}"
-        for command in commands
-    ]
-    gcp_command_list = "\n".join(gcp_commands)
+    commands_list = "; ".join(commands)
     return subprocess.run(
-        gcp_command_list,
+        f"gcloud compute ssh --zone {gcp_zone} --project {gcp_project} -- command {commands_list}",
         shell=True,
         executable="/bin/bash",
         capture_output=True,
