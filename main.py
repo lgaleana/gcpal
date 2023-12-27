@@ -25,7 +25,9 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
             assert isinstance(ai_action.payload, chat.Tool)
             conversation.add_tool(
                 tool_id=ai_action.payload.id,
-                arguments=ai_action.payload.model_dump_json(),
+                arguments=ai_action.payload.arguments.model_dump_json()
+                if ai_action.payload.arguments
+                else None,
             )
             if ai_action.name == chat.Action.EXECUTE_SHELL:
                 assert ai_action.payload.arguments

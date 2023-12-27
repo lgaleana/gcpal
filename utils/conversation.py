@@ -1,6 +1,6 @@
 import json
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class Conversation(List[Dict[str, Any]]):
@@ -16,7 +16,7 @@ class Conversation(List[Dict[str, Any]]):
     def add_user(self, message: str) -> None:
         self.append({"role": "user", "content": message})
 
-    def add_tool(self, tool_id: str, arguments: str) -> None:
+    def add_tool(self, tool_id: str, arguments: Optional[str]) -> None:
         self.append(
             {
                 "role": "assistant",
