@@ -35,6 +35,9 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                 user_message = user_input()
                 if user_message == "y":
                     process = execute_shell(ai_action.payload.arguments.commands)
+                    print_system()
+                    print_system(process.stdout)
+                    print_system(process.stderr)
                     if process.returncode == 0:
                         conversation.add_tool_response(
                             tool_id=ai_action.payload.id,
@@ -56,7 +59,6 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                     tool_id=ai_action.payload.id,
                     message="Conversation persisted successfully.",
                 )
-                conversation.add_system("Conversation resumed. Say hi.")
                 print_system("Converstion to persist: ")
                 print_system()
                 print_system(json.dumps(conversation, indent=2))
@@ -70,7 +72,7 @@ def execute_shell(commands: List[str]) -> subprocess.CompletedProcess:
     assert gcp_zone and gcp_project, "GCP info not found"
     commands_list = "; ".join(commands)
     return subprocess.run(
-        f"gcloud compute ssh --zone {gcp_zone} --project {gcp_project} -- command {commands_list}",
+        f"gcloud compute ssh --zone {gcp_zone} --project {gcp_project} -- command '{commands_list}'",
         shell=True,
         executable="/bin/bash",
         capture_output=True,
@@ -79,4 +81,9 @@ def execute_shell(commands: List[str]) -> subprocess.CompletedProcess:
 
 
 if __name__ == "__main__":
-    run(Conversation.load())
+    conversation = Conversation.load()
+    if conversation:
+        conversation.add_system(
+            "Conversation loaded. Please resume the conversation where it was left."
+        )
+    run(conversation)
