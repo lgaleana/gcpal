@@ -83,7 +83,7 @@ if __name__ == "__main__":
     if conversation:
         conversation.add_system(
             (
-                "Conversation loaded. Please resume the conversation where it was left."
+                "Conversation loaded. Please resume the conversation where it was left. "
                 "Commands are only executed through the `execute_shell` tool."
             )
         )

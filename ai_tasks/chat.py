@@ -48,35 +48,10 @@ Say hi."""
 
 def next_action(conversation: Conversation) -> NextAction:
     print_system(conversation)
-    ai_response = llm.stream_next(
+    next = llm.stream_next(
         [{"role": "system", "content": PROMPT}] + conversation,
         tools=TOOLS,
     )
-    try:
-        return _parse_ai_response(ai_response)
-    except ValidationError as e:
-        print_system(e)
-        print_system(traceback.format_tb(e.__traceback__))
-        ai_response = llm.stream_next(
-            Conversation(
-                conversation
-                + [
-                    {
-                        "role": "system",
-                        "content": (
-                            f"Error parsing function parameters :: {e}\n"
-                            f"Got :: {ai_response.arguments}\n"  # type: ignore
-                            "Please fix the error."
-                        ),
-                    }
-                ]
-            ),
-            tools=TOOLS,
-        )
-        return _parse_ai_response(ai_response)
-
-
-def _parse_ai_response(next: Union[str, llm.RawTool]) -> NextAction:
     if isinstance(next, str):
         return NextAction(name=Action.CHAT, payload=next)
     return NextAction(
