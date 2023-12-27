@@ -67,12 +67,14 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
 
 
 def execute_shell(commands: List[str]) -> subprocess.CompletedProcess:
-    gcp_zone = os.getenv("GCP_ZONE")
-    gcp_project = os.getenv("GCP_PROJECT")
-    assert gcp_zone and gcp_project, "GCP info not found"
-    commands_list = "; ".join(commands)
+    # gcp_zone = os.getenv("GCP_ZONE")
+    # gcp_project = os.getenv("GCP_PROJECT")
+    # assert gcp_zone and gcp_project, "GCP info not found"
+    commands = ["cd sandbox"] + commands
+    commands_list = "\n".join(commands)
     return subprocess.run(
-        f"gcloud compute ssh --zone {gcp_zone} --project {gcp_project} -- command '{commands_list}'",
+        # f"gcloud compute ssh --zone {gcp_zone} --project {gcp_project} -- command '{commands_list}'",
+        commands_list,
         shell=True,
         executable="/bin/bash",
         capture_output=True,

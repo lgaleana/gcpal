@@ -23,7 +23,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": Action.EXECUTE_SHELL,
-            "description": "Executes shell commands in MacOS",
+            "description": "Executes shell commands for MacOS",
             "parameters": ExecuteShellParams.schema(),
         },
     },
@@ -49,9 +49,8 @@ class NextAction(BaseModel):
 
 PROMPT = """You are a helpful AI assistant that helps software engineers build software, using the best software engineering practices.
 
-Your build environment is a Google Cloud Compute Engine VM.
-You can execute shell commands inside the VM.
-All shell commands will be executed from within the home directory.
+Every set of shell commands that you execute will begin from the home directory.
+For example, if you execute `["mkdir foo", "cd foo"]`, the next command you execute won't be execute inside `foo/`.
 
 Say hi."""
 
