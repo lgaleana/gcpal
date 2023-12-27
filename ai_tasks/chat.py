@@ -11,7 +11,6 @@ from utils.io import print_system
 class Action:
     CHAT = "chat"
     EXECUTE_SHELL = "execute_shell"
-    PERSIST_CONVERSATION = "persist_conversation"
 
 
 class ExecuteShellParams(BaseModel):
@@ -27,19 +26,11 @@ TOOLS = [
             "parameters": ExecuteShellParams.schema(),
         },
     },
-    {
-        "type": "function",
-        "function": {
-            "name": Action.PERSIST_CONVERSATION,
-            "description": "Persist the whole conversation history",
-            "parameters": None,
-        },
-    },
 ]
 
 
 class Tool(llm.RawTool):
-    arguments: Union[ExecuteShellParams, None]
+    arguments: ExecuteShellParams
 
 
 class NextAction(BaseModel):
@@ -88,20 +79,11 @@ def next_action(conversation: Conversation) -> NextAction:
 def _parse_ai_response(next: Union[str, llm.RawTool]) -> NextAction:
     if isinstance(next, str):
         return NextAction(name=Action.CHAT, payload=next)
-    if next.name == Action.EXECUTE_SHELL:
-        return NextAction(
-            name=Action.EXECUTE_SHELL,
-            payload=Tool(
-                id=next.id,
-                name=next.name,
-                arguments=ExecuteShellParams.parse_obj(next.arguments),
-            ),
-        )
     return NextAction(
-        name=Action.PERSIST_CONVERSATION,
+        name=Action.EXECUTE_SHELL,
         payload=Tool(
             id=next.id,
             name=next.name,
-            arguments=None,
+            arguments=ExecuteShellParams.parse_obj(next.arguments),
         ),
     )

@@ -4,7 +4,7 @@ import json
 from pydantic import BaseModel
 from openai import OpenAI
 
-from utils.io import print_assistant, print_system
+from utils.io import print_assistant
 
 
 class RawTool(BaseModel):
@@ -100,7 +100,6 @@ def stream_text(first_chunk, response) -> str:
 
 
 def collect_tool(first_chunk, response) -> RawTool:
-    print_system(first_chunk)
     tool_id = first_chunk.choices[0].delta.tool_calls[0].id
     tool_name = first_chunk.choices[0].delta.tool_calls[0].function.name
     arguments = first_chunk.choices[0].delta.tool_calls[0].function.arguments
@@ -108,7 +107,6 @@ def collect_tool(first_chunk, response) -> RawTool:
     for chunk in response:
         if chunk.choices[0].delta.tool_calls:
             arguments += chunk.choices[0].delta.tool_calls[0].function.arguments
-        print_system(chunk)
-        # print_assistant(".", end="", flush=True)
+        print_assistant(".", end="", flush=True)
     print_assistant()
     return RawTool(id=tool_id, name=tool_name, arguments=json.loads(arguments))
