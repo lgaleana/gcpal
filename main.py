@@ -1,3 +1,4 @@
+import argparse
 from typing import Any, Dict, List
 
 from dotenv import load_dotenv
@@ -7,7 +8,7 @@ load_dotenv()
 from ai_tasks import chat
 from utils import docker
 from utils.io import user_input, print_system
-from utils.state import Conversation, state
+from utils.state import Conversation, state, State
 
 
 def run(_conversation: List[Dict[str, Any]] = []) -> None:
@@ -65,4 +66,9 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--new", action="store_true")
+    args = parser.parse_args()
+    if args.new:
+        state = State()
     run()

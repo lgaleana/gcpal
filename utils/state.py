@@ -48,8 +48,8 @@ class Command(BaseModel):
 
 
 class State(BaseModel):
-    conversation: Conversation
-    commands: List[Command]
+    conversation: Conversation = Conversation()
+    commands: List[Command] = []
 
     class Config:
         arbitrary_types_allowed = True
