@@ -2,34 +2,51 @@ import os
 from unittest import TestCase
 
 os.environ["DOCKER_NAME"] = "gcpal"
+os.environ["ENV"] = "TEST"
 
-from utils.docker import execute
+from utils.docker import execute, payload
 
 
 class DockerTests(TestCase):
     def test(self):
         assert execute(["cd home", "ls"]) == ([], [])
-        assert execute(["pwd"]) == (["/home\n"], [])
+        assert execute(["pwd"]) == (["/home"], [])
         assert execute(["cd ..", "ls"]) == (
             [
-                "bin\n",
-                "boot\n",
-                "dev\n",
-                "etc\n",
-                "home\n",
-                "lib\n",
-                "media\n",
-                "mnt\n",
-                "opt\n",
-                "proc\n",
-                "root\n",
-                "run\n",
-                "sbin\n",
-                "srv\n",
-                "sys\n",
-                "tmp\n",
-                "usr\n",
-                "var\n",
+                "bin",
+                "boot",
+                "dev",
+                "etc",
+                "home",
+                "lib",
+                "media",
+                "mnt",
+                "opt",
+                "proc",
+                "root",
+                "run",
+                "sbin",
+                "srv",
+                "sys",
+                "tmp",
+                "usr",
+                "var",
             ],
             [],
         )
+        assert payload == [
+            {
+                "command": "cd home",
+                "output": {"msg": "COMMAND_EXECUTED", "type_": "stdout"},
+            },
+            {"command": "ls", "output": {"msg": "COMMAND_EXECUTED", "type_": "stdout"}},
+            {
+                "command": "pwd",
+                "output": {"msg": "COMMAND_EXECUTED", "type_": "stdout"},
+            },
+            {
+                "command": "cd ..",
+                "output": {"msg": "COMMAND_EXECUTED", "type_": "stdout"},
+            },
+            {"command": "ls", "output": {"msg": "COMMAND_EXECUTED", "type_": "stdout"}},
+        ]

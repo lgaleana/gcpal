@@ -1,10 +1,12 @@
+import json
 import os
 import subprocess
 import threading
 from pydantic import BaseModel
 from queue import Empty, Queue
-from typing import ClassVar, List, Tuple, Type
+from typing import ClassVar, List, Tuple, Type, Union
 
+from db.commands import payload
 from utils.io import print_system
 
 
@@ -23,17 +25,24 @@ process = subprocess.Popen(
 )
 
 
-COMMAND_EXECUTED = "COMMAND_EXECUTED\n"
+COMMAND_EXECUTED = "COMMAND_EXECUTED"
 TIMEOUT = 5
 
 
 class StdOut(BaseModel):
     msg: str
+    type_: str = "stdout"
     exit_signal: ClassVar[str] = "EXIT_STDOUT"
 
 
 class StdErr(StdOut):
+    type_: str = "stderr"
     exit_signal: ClassVar[str] = "EXIT_STDERR"
+
+
+class Command(BaseModel):
+    command: str
+    output: Union[StdOut, StdErr]
 
 
 def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
@@ -47,7 +56,7 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
     def _stream(pipe, q: Queue, output: Type[StdOut]) -> None:
         # Wait for updates from docker
         while True:
-            line = pipe.readline()
+            line = pipe.readline().strip()
             q.put(output(msg=line))  # Send message back to the main thread
             if not line or output.exit_signal in line:
                 break
@@ -64,18 +73,20 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
         # Iterate over commands
         for command in commands:
             process.stdin.write(f"{command}\n")
-            process.stdin.write(f"echo {COMMAND_EXECUTED}")  # Signal of executed
+            process.stdin.write(f"echo {COMMAND_EXECUTED}\n")  # Signal of executed
             process.stdin.flush()
 
             # Iterate over the command stdout or stderr
-            output = queue.get(timeout=TIMEOUT)
-            while output.msg != COMMAND_EXECUTED:
+            while True:
+                output = queue.get(timeout=TIMEOUT)
+                if output.msg == COMMAND_EXECUTED:
+                    _save_command(Command(command=command, output=output))
+                    break
                 if isinstance(output, StdOut):
                     outputs.append(output.msg)
                 else:
                     errors.append(output.msg)
-                print_system(output.msg, end="")
-                output = queue.get(timeout=TIMEOUT)
+                print_system(output.msg)
 
         # Signal to exit the threads
         process.stdin.write(f"echo {StdOut.exit_signal}\n")
@@ -98,3 +109,12 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
     stderr.join()
 
     return outputs, errors
+
+
+def _save_command(command: Command) -> None:
+    payload.append(command.model_dump())
+    if os.getenv("ENV") != "TEST":
+        payload_str = "payload = " + json.dumps(payload, indent=4)
+        payload_str = payload_str.replace(": null\n", ": None\n")
+        with open("db/commands.py", "w") as file:
+            file.write(payload_str)
