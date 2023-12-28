@@ -1,4 +1,3 @@
-import json
 import os
 import subprocess
 import threading
@@ -6,8 +5,8 @@ from pydantic import BaseModel
 from queue import Empty, Queue
 from typing import ClassVar, List, Tuple, Type
 
-from db.commands import payload
 from utils.io import print_system
+from utils.state import Command, state
 
 
 assert "DOCKER_NAME" in os.environ
@@ -36,11 +35,6 @@ class StdOut(BaseModel):
 
 class StdErr(StdOut):
     exit_signal: ClassVar[str] = "EXIT_STDERR"
-
-
-class Command(BaseModel):
-    command: str
-    is_success: bool = True
 
 
 def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
@@ -112,9 +106,4 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
 
 
 def _persist_command(command: Command) -> None:
-    payload.append(command.model_dump())
-    if os.getenv("ENV") != "TEST":
-        payload_str = "payload = " + json.dumps(payload, indent=4)
-        payload_str = payload_str.replace(": null\n", ": None\n")
-        with open("db/commands.py", "w") as file:
-            file.write(payload_str)
+    state.commands.append(command)

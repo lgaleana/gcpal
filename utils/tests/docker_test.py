@@ -2,9 +2,8 @@ import os
 from unittest import TestCase
 
 os.environ["DOCKER_NAME"] = "gcpal"
-os.environ["ENV"] = "TEST"
 
-from utils.docker import execute, payload
+from utils.docker import execute, state
 
 
 class DockerTests(TestCase):
@@ -34,7 +33,7 @@ class DockerTests(TestCase):
             ],
             [],
         )
-        assert payload == [
+        assert [c.model_dump() for c in state.commands] == [
             {"command": "cd home", "is_success": True},
             {"command": "ls", "is_success": True},
             {"command": "pwd", "is_success": True},

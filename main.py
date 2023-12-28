@@ -1,4 +1,3 @@
-import json
 from typing import Any, Dict, List
 
 from dotenv import load_dotenv
@@ -7,12 +6,14 @@ load_dotenv()
 
 from ai_tasks import chat
 from utils import docker
-from utils.conversation import Conversation
 from utils.io import user_input, print_system
+from utils.state import Conversation, state
 
 
 def run(_conversation: List[Dict[str, Any]] = []) -> None:
-    conversation = Conversation(_conversation)
+    if _conversation:
+        state.conversation = Conversation(_conversation)
+    conversation = state.conversation
     while True:
         ai_action = chat.next_action(conversation)
 
@@ -59,17 +60,9 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
         if user_message == "persist":
             conversation.add_user("Please persist the conversation into disk.")
             conversation.add_system("Conversation persisted successfully.")
-            print_system("Converstion to persist: ")
-            print_system()
-            print_system(json.dumps(conversation, indent=2))
-            conversation.dump()
+            state.persist()
             break
 
 
 if __name__ == "__main__":
-    conversation = Conversation.load()
-    if conversation:
-        conversation.add_system(
-            "Conversation loaded. Please resume the conversation where it was left."
-        )
-    run(conversation)
+    run()

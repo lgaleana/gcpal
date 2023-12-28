@@ -1,6 +1,7 @@
-import json
-
+from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
+
+from utils.io import print_system
 
 
 class Conversation(List[Dict[str, Any]]):
@@ -37,14 +38,38 @@ class Conversation(List[Dict[str, Any]]):
     def add_tool_response(self, tool_id: str, message: str) -> None:
         self.append({"role": "tool", "content": message, "tool_call_id": tool_id})
 
+    def empty(self) -> bool:
+        return len(self) == 0
+
+
+class Command(BaseModel):
+    command: str
+    is_success: bool = True
+
+
+class State(BaseModel):
+    conversation: Conversation
+    commands: List[Command]
+
+    class Config:
+        arbitrary_types_allowed = True
+
     @staticmethod
-    def load() -> "Conversation":
-        from db.conversation import payload
+    def load() -> "State":
+        from db.state import payload
 
-        return Conversation(payload)
+        conversation = Conversation(payload.pop("conversation", []))
+        if not conversation.empty():
+            conversation.add_system("Conversation resumed.")
+        return State(**payload, conversation=Conversation(conversation))
 
-    def dump(self) -> None:
-        payload_str = "payload = " + json.dumps(self, indent=4)
+    def persist(self) -> None:
+        payload_str = "payload = " + self.model_dump_json(indent=4)
         payload_str = payload_str.replace(": null\n", ": None\n")
-        with open("db/conversation.py", "w") as file:
+        with open("db/state.py", "w") as file:
             file.write(payload_str)
+        print_system("State persisted successfully: ")
+        print_system(payload_str)
+
+
+state = State.load()

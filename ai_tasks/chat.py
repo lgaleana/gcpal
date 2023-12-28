@@ -3,8 +3,8 @@ from typing import List, Union
 from pydantic import BaseModel, Field
 
 from ai import llm
-from utils.conversation import Conversation
 from utils.io import print_system
+from utils.state import Conversation
 
 
 class Action:
