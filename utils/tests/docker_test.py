@@ -35,18 +35,9 @@ class DockerTests(TestCase):
             [],
         )
         assert payload == [
-            {
-                "command": "cd home",
-                "output": {"msg": "COMMAND_EXECUTED", "type_": "stdout"},
-            },
-            {"command": "ls", "output": {"msg": "COMMAND_EXECUTED", "type_": "stdout"}},
-            {
-                "command": "pwd",
-                "output": {"msg": "COMMAND_EXECUTED", "type_": "stdout"},
-            },
-            {
-                "command": "cd ..",
-                "output": {"msg": "COMMAND_EXECUTED", "type_": "stdout"},
-            },
-            {"command": "ls", "output": {"msg": "COMMAND_EXECUTED", "type_": "stdout"}},
+            {"command": "cd home", "is_success": True},
+            {"command": "ls", "is_success": True},
+            {"command": "pwd", "is_success": True},
+            {"command": "cd ..", "is_success": True},
+            {"command": "ls", "is_success": True},
         ]

@@ -4,7 +4,7 @@ import subprocess
 import threading
 from pydantic import BaseModel
 from queue import Empty, Queue
-from typing import ClassVar, List, Tuple, Type, Union
+from typing import ClassVar, List, Tuple, Type
 
 from db.commands import payload
 from utils.io import print_system
@@ -31,18 +31,16 @@ TIMEOUT = 5
 
 class StdOut(BaseModel):
     msg: str
-    type_: str = "stdout"
     exit_signal: ClassVar[str] = "EXIT_STDOUT"
 
 
 class StdErr(StdOut):
-    type_: str = "stderr"
     exit_signal: ClassVar[str] = "EXIT_STDERR"
 
 
 class Command(BaseModel):
     command: str
-    output: Union[StdOut, StdErr]
+    is_success: bool = True
 
 
 def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
@@ -75,18 +73,20 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
             process.stdin.write(f"{command}\n")
             process.stdin.write(f"echo {COMMAND_EXECUTED}\n")  # Signal of executed
             process.stdin.flush()
+            command_obj = Command(command=command)
 
             # Iterate over the command stdout or stderr
-            while True:
-                output = queue.get(timeout=TIMEOUT)
-                if output.msg == COMMAND_EXECUTED:
-                    _save_command(Command(command=command, output=output))
-                    break
+            output = queue.get(timeout=TIMEOUT)
+            while output.msg != COMMAND_EXECUTED:
                 if isinstance(output, StdOut):
                     outputs.append(output.msg)
                 else:
+                    command_obj.is_success = False
                     errors.append(output.msg)
                 print_system(output.msg)
+                output = queue.get(timeout=TIMEOUT)
+
+            _persist_command(command_obj)
 
         # Signal to exit the threads
         process.stdin.write(f"echo {StdOut.exit_signal}\n")
@@ -111,7 +111,7 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
     return outputs, errors
 
 
-def _save_command(command: Command) -> None:
+def _persist_command(command: Command) -> None:
     payload.append(command.model_dump())
     if os.getenv("ENV") != "TEST":
         payload_str = "payload = " + json.dumps(payload, indent=4)
