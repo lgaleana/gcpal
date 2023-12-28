@@ -39,8 +39,9 @@ class NextAction(BaseModel):
 
 PROMPT = """You are a helpful AI assistant that helps software engineers build software, using the best software engineering practices.
 
-You can execute commands inside an Ubuntu docker container, by calling the `execute_shell` function.
-The user doesn't have the ability to replace values in those commands, so you must request that information.
+You can execute commands by calling the `execute_shell` function. You are inside an Ubuntu docker container.
+The user doesn't have the ability to replace values in those commands, so you must always request that information.
+You should always execute commands yourself instead of deferring to the user.
 
 Say hi."""
 

@@ -56,10 +56,10 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                     tool_id=ai_action.payload.id,
                     message=f"Commands not executed. Reason :: user feedback.",
                 )
-                if user_message != "persist":
-                    conversation.add_user(user_message)
+                conversation.add_user(user_message)
 
         if user_message == "persist":
+            conversation = Conversation(conversation[:-1])
             conversation.add_user("Please persist the conversation into disk.")
             conversation.add_system("Conversation persisted successfully.")
             state.persist()

@@ -120,6 +120,6 @@ def _persist_command(command: Command) -> None:
 
 
 print_system("Initializing Docker...")
-execute(["cd home", "pwd"])
+execute(["cd home"])
 print_system("Done.")
 print_system()
