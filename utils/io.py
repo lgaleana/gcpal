@@ -1,8 +1,8 @@
 from typing import Any
 
 
-def print_system(message: Any = "") -> str:
-    print(f"\033[0;0m{message}")
+def print_system(message: Any = "", end: str = "\n") -> str:
+    print(f"\033[0;0m{message}", end=end)
     return message
 
 

@@ -1,7 +1,6 @@
-import traceback
 from typing import List, Union
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from ai import llm
 from utils.conversation import Conversation
@@ -22,7 +21,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": Action.EXECUTE_SHELL,
-            "description": "Executes shell commands for MacOS",
+            "description": "Executes shell commands in Ubuntu",
             "parameters": ExecuteShellParams.schema(),
         },
     },
@@ -40,8 +39,7 @@ class NextAction(BaseModel):
 
 PROMPT = """You are a helpful AI assistant that helps software engineers build software, using the best software engineering practices.
 
-Every set of shell commands that you execute will begin from the home directory.
-For example, if you execute `["mkdir foo", "cd foo"]`, the next command you execute won't be execute inside `foo/`.
+You can execute shell commands. They will be executed inside an Ubuntu docker container.
 
 Say hi."""
 
