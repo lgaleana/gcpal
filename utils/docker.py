@@ -71,7 +71,7 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
 
             # Iterate over the command stdout or stderr
             output = queue.get(timeout=TIMEOUT)
-            while output.msg != COMMAND_EXECUTED:
+            while COMMAND_EXECUTED not in output.msg:
                 print_system(output.msg)
                 if isinstance(output, StdOut):
                     outputs.append(output.msg)
@@ -115,4 +115,7 @@ def _persist_command(command: Command) -> None:
     state.commands.append(command)
 
 
+print_system("Initializing Docker...")
 execute(["cd home", "pwd"])
+print_system("Done.")
+print_system()

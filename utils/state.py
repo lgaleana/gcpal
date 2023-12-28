@@ -60,12 +60,16 @@ class State(BaseModel):
 
         conversation = Conversation(payload.pop("conversation", []))
         if not conversation.empty():
-            conversation.add_system("Conversation resumed.")
+            conversation.add_system(
+                "Conversation loaded. Describe to the user where it was left off."
+            )
         return State(**payload, conversation=Conversation(conversation))
 
     def persist(self) -> None:
         payload_str = "payload = " + self.model_dump_json(indent=4)
         payload_str = payload_str.replace(": null\n", ": None\n")
+        payload_str = payload_str.replace(": true\n", ": True\n")
+        payload_str = payload_str.replace(": false\n", ": False\n")
         with open("db/state.py", "w") as file:
             file.write(payload_str)
         print_system("State persisted successfully: ")
