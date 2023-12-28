@@ -3,35 +3,13 @@ import subprocess
 import threading
 from pydantic import BaseModel
 from queue import Empty, Queue
-from typing import List, Tuple
+from typing import ClassVar, List, Tuple, Type
 
 from utils.io import print_system
 
 
-class PipeStatus(BaseModel):
-    stdout: bool = True
-    stderr: bool = True
-
-
-class Message(BaseModel):
-    line: str
-
-
-class Output(Message):
-    pass
-
-
-class Error(Message):
-    pass
-
-
 assert "DOCKER_NAME" in os.environ
 DOCKER_NAME = os.environ["DOCKER_NAME"]
-
-EOF = "<EOF>"
-EXITCOMMAND = "exitcommand"
-ERROR = "ERROR: "
-TIMEOUT = 5
 
 
 process = subprocess.Popen(
@@ -44,56 +22,58 @@ process = subprocess.Popen(
 )
 
 
+COMMAND_EXECUTED = "COMMAND_EXECUTED\n"
+TIMEOUT = 5
+
+
+class StdOut(BaseModel):
+    msg: str
+    exit_signal: ClassVar[str] = "EXIT_STDOUT"
+
+
+class StdErr(StdOut):
+    exit_signal: ClassVar[str] = "EXIT_STDERR"
+
+
 def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
     global process
     assert process.stdin
     assert process.stdout
     assert process.stderr
 
-    queue = Queue[Message]()
-    is_ongoing = PipeStatus(stdout=True, stderr=True)
+    QUEUE = Queue[StdOut]()
 
-    for command in commands:
-        process.stdin.write(f"{command}\n")
-    process.stdin.write(f"echo '{EOF}'\n")
-    process.stdin.flush()
-
-    def _stdout(pipe, q: Queue) -> None:
+    def _stream(pipe, q: Queue, output: Type[StdOut]) -> None:
         while True:
             line = pipe.readline()
-            q.put(Output(line=line))
-            if not line or line == f"{EOF}\n":
-                is_ongoing.stdout = False
+            q.put(output(msg=line))
+            if not line or output.exit_signal in line:
                 break
-            print_system(line, end="")
 
-    def _stderr(pipe, q: Queue) -> None:
-        while True:
-            line = pipe.readline()
-            q.put(Error(line=line))
-            if not line or EXITCOMMAND in line:
-                is_ongoing.stderr = False
-                break
-            print_system(line, end="")
-
-    stdout = threading.Thread(target=_stdout, args=(process.stdout, queue))
-    stderr = threading.Thread(target=_stderr, args=(process.stderr, queue))
+    stdout = threading.Thread(target=_stream, args=(process.stdout, QUEUE, StdOut))
+    stderr = threading.Thread(target=_stream, args=(process.stderr, QUEUE, StdErr))
     stdout.start()
     stderr.start()
 
     outputs = []
     errors = []
     try:
-        while is_ongoing.stdout or is_ongoing.stderr:
-            message = queue.get(timeout=TIMEOUT)
-            if message.line == f"{EOF}\n":
-                process.stdin.write(f"{EXITCOMMAND}\n")
-                process.stdin.flush()
-            elif EXITCOMMAND not in message.line:
-                if isinstance(message, Output):
-                    outputs.append(message.line)
+        for command in commands:
+            process.stdin.write(f"{command}\n")
+            process.stdin.write(f"echo {COMMAND_EXECUTED}")
+            process.stdin.flush()
+
+            output = QUEUE.get(timeout=TIMEOUT)
+            while output.msg != COMMAND_EXECUTED:
+                if isinstance(output, StdOut):
+                    outputs.append(output.msg)
                 else:
-                    errors.append(message.line)
+                    errors.append(output.msg)
+                print_system(output.msg, end="")
+                output = QUEUE.get(timeout=TIMEOUT)
+
+        process.stdin.write(f"echo {StdOut.exit_signal}\n")
+        process.stdin.write(f"{StdErr.exit_signal}\n")
     except Empty:
         process.terminate()
         process = subprocess.Popen(
