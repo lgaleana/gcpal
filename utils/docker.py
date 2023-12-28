@@ -96,8 +96,8 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
             text=True,
             bufsize=1,
         )
-        outputs.append(f"Process is hanging after {TIMEOUT}s. Connection restarted.")
-        outputs.append("#pwd\n/home")
+        outputs_, _ = execute(["cd home", "pwd"])
+        outputs.extend(outputs_)
 
     stdout.join()
     stderr.join()
@@ -107,3 +107,6 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
 
 def _persist_command(command: Command) -> None:
     state.commands.append(command)
+
+
+execute(["cd home", "pwd"])
