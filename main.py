@@ -44,12 +44,12 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                 if not errors:
                     conversation.add_tool_response(
                         tool_id=ai_action.payload.id,
-                        message=f"Commands executed successfully. Stdout :: {stdout}",
+                        message=f"Commands executed. Stdout :: {stdout}",
                     )
                 else:
                     conversation.add_tool_response(
                         tool_id=ai_action.payload.id,
-                        message=f"Some commands prodiced errors. Stdout :: {stdout}, stderr: {errors}",
+                        message=f"Commands produced an error. Stdout :: {stdout}, stderr: {errors}",
                     )
             else:
                 conversation.add_tool_response(

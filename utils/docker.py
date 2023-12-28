@@ -62,12 +62,14 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
     outputs = []
     errors = []
     try:
+        commands.append("pwd")
         # Iterate over commands
         for command in commands:
-            print_system(f">{command}")
             process.stdin.write(f"{command}\n")
             process.stdin.write(f"echo {COMMAND_EXECUTED}\n")  # Signal of executed
             process.stdin.flush()
+            print_system(f"#{command}")
+            outputs.append(f"#{command}")
 
             # Iterate over the command stdout or stderr
             output = queue.get(timeout=TIMEOUT)
@@ -89,9 +91,15 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
         # Signal to exit the threads
         process.stdin.write(f"echo {StdOut.exit_signal}\n")
         process.stdin.write(f"{StdErr.exit_signal}\n")
+
+        stdout.join()
+        stderr.join()
     except Empty:
         # Timeout
         process.terminate()
+        stdout.join()
+        stderr.join()
+
         process = subprocess.Popen(
             ["docker", "exec", "-i", DOCKER_NAME, "bash"],
             stdin=subprocess.PIPE,
@@ -102,11 +110,7 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
         )
         outputs.append(f"Process is hanging after {TIMEOUT}s. Connection restarted.")
         outputs_, _ = execute(["cd home", "pwd"])
-        outputs.append("#pwd")
         outputs.extend(outputs_)
-
-    stdout.join()
-    stderr.join()
 
     return outputs, errors
 
