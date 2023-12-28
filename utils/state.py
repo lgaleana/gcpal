@@ -44,7 +44,7 @@ class Conversation(List[Dict[str, Any]]):
 
 class Command(BaseModel):
     command: str
-    is_success: bool = True
+    is_success: bool
 
 
 class State(BaseModel):

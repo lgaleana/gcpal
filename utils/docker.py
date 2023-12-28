@@ -64,23 +64,27 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
     try:
         # Iterate over commands
         for command in commands:
+            print_system(f">{command}")
             process.stdin.write(f"{command}\n")
             process.stdin.write(f"echo {COMMAND_EXECUTED}\n")  # Signal of executed
             process.stdin.flush()
-            command_obj = Command(command=command)
 
             # Iterate over the command stdout or stderr
             output = queue.get(timeout=TIMEOUT)
             while output.msg != COMMAND_EXECUTED:
+                print_system(output.msg)
                 if isinstance(output, StdOut):
                     outputs.append(output.msg)
                 else:
-                    command_obj.is_success = False
                     errors.append(output.msg)
-                print_system(output.msg)
+                    break
                 output = queue.get(timeout=TIMEOUT)
 
-            _persist_command(command_obj)
+            if isinstance(output, StdErr):
+                # Exit on error
+                _persist_command(Command(command=command, is_success=False))
+                break
+            _persist_command(Command(command=command, is_success=True))
 
         # Signal to exit the threads
         process.stdin.write(f"echo {StdOut.exit_signal}\n")
@@ -96,7 +100,9 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
             text=True,
             bufsize=1,
         )
+        outputs.append(f"Process is hanging after {TIMEOUT}s. Connection restarted.")
         outputs_, _ = execute(["cd home", "pwd"])
+        outputs.append("#pwd")
         outputs.extend(outputs_)
 
     stdout.join()
