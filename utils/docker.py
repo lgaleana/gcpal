@@ -13,12 +13,25 @@ class PipeStatus(BaseModel):
     stderr: bool = True
 
 
+class Message(BaseModel):
+    line: str
+
+
+class Output(Message):
+    pass
+
+
+class Error(Message):
+    pass
+
+
 assert "DOCKER_NAME" in os.environ
 DOCKER_NAME = os.environ["DOCKER_NAME"]
 
 EOF = "<EOF>"
 EXITCOMMAND = "exitcommand"
 ERROR = "ERROR: "
+TIMEOUT = 5
 
 
 process = subprocess.Popen(
@@ -31,13 +44,13 @@ process = subprocess.Popen(
 )
 
 
-def execute(commands: List[str]) -> List[str]:
+def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
     global process
     assert process.stdin
     assert process.stdout
     assert process.stderr
 
-    queue = Queue[str]()
+    queue = Queue[Message]()
     is_ongoing = PipeStatus(stdout=True, stderr=True)
 
     for command in commands:
@@ -48,7 +61,7 @@ def execute(commands: List[str]) -> List[str]:
     def _stdout(pipe, q: Queue) -> None:
         while True:
             line = pipe.readline()
-            q.put(line)
+            q.put(Output(line=line))
             if not line or line == f"{EOF}\n":
                 is_ongoing.stdout = False
                 break
@@ -57,7 +70,7 @@ def execute(commands: List[str]) -> List[str]:
     def _stderr(pipe, q: Queue) -> None:
         while True:
             line = pipe.readline()
-            q.put(line)
+            q.put(Error(line=line))
             if not line or EXITCOMMAND in line:
                 is_ongoing.stderr = False
                 break
@@ -69,14 +82,18 @@ def execute(commands: List[str]) -> List[str]:
     stderr.start()
 
     outputs = []
+    errors = []
     try:
         while is_ongoing.stdout or is_ongoing.stderr:
-            output = queue.get(timeout=len(commands) * 5)
-            if output == f"{EOF}\n":
+            message = queue.get(timeout=TIMEOUT)
+            if message.line == f"{EOF}\n":
                 process.stdin.write(f"{EXITCOMMAND}\n")
                 process.stdin.flush()
-            elif EXITCOMMAND not in output:
-                outputs.append(output)
+            elif EXITCOMMAND not in message.line:
+                if isinstance(message, Output):
+                    outputs.append(message.line)
+                else:
+                    errors.append(message.line)
     except Empty:
         process.terminate()
         process = subprocess.Popen(
@@ -87,10 +104,10 @@ def execute(commands: List[str]) -> List[str]:
             text=True,
             bufsize=1,
         )
-        outputs.append("Process is hanging. Connection restarted.")
+        outputs.append(f"Process is hanging after {TIMEOUT}s. Connection restarted.")
         outputs.append("#pwd\n/home")
 
     stdout.join()
     stderr.join()
 
-    return outputs
+    return outputs, errors

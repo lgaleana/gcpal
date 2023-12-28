@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 
@@ -26,16 +26,29 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                 tool_id=ai_action.payload.id,
                 arguments=ai_action.payload.arguments.model_dump_json(),
             )
-            command_list = "\n".join(ai_action.payload.arguments.commands)
+            commands = ai_action.payload.arguments.commands
+            command_list = "\n".join(commands)
             print_system("The following commands will be executed: ")
             print_system(f"```\n{command_list}\n```")
+
             user_message = user_input()
             if user_message == "y" or user_message == "ok" or user_message == "":
-                stdout = docker.execute(ai_action.payload.arguments.commands)
-                conversation.add_tool_response(
-                    tool_id=ai_action.payload.id,
-                    message=f"Commands executed. Stdout :: {stdout}",
-                )
+                outputs, errors = docker.execute(commands)
+
+                stdout = str(outputs)
+                max_len = len(commands) * 30
+                if len(outputs) > max_len:
+                    stdout = f"<long output>... {stdout[-max_len:]}"
+                if not errors:
+                    conversation.add_tool_response(
+                        tool_id=ai_action.payload.id,
+                        message=f"Commands executed successfully. Stdout :: {stdout}",
+                    )
+                else:
+                    conversation.add_tool_response(
+                        tool_id=ai_action.payload.id,
+                        message=f"Some commands prodiced errors. Stdout :: {stdout}, stderr: {errors}",
+                    )
             else:
                 conversation.add_tool_response(
                     tool_id=ai_action.payload.id,
