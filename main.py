@@ -37,12 +37,10 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
             if user_message == "y" or user_message == "ok" or user_message == "":
                 outputs, errors = docker.execute(commands)
 
-                stdout = []
-                for output in outputs:
-                    if len(output) > 100:
-                        stdout.append(f"... {output[-100:]}")
-                    else:
-                        stdout.append(output)
+                stdout = str(outputs)
+                max_len = len(commands) * 100
+                if len(stdout) > max_len:
+                    stdout = f"<long output>... {stdout[-max_len:]}"
                 if not errors:
                     conversation.add_tool_response(
                         tool_id=ai_action.payload.id,

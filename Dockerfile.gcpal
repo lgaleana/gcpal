@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV GOOGLE_APPLICATION_CREDENTIALS=gcpal-409321-1bbf204b5462.json
+ENV GOOGLE_APPLICATION_CREDENTIALS=gcpal-409321-c42c171a4684.json
 
 # Package installation
 RUN apt-get update && apt-get install -y \

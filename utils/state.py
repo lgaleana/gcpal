@@ -60,12 +60,7 @@ class State(BaseModel):
 
         conversation = Conversation(payload.pop("conversation", []))
         if not conversation.empty():
-            conversation.add_system(
-                (
-                    "Conversation loaded. You are inside the directory `/home`. "
-                    "Describe to the user what you remember and continue."
-                )
-            )
+            conversation.add_system("Conversation resumed. Say hi and continue.")
         return State(**payload, conversation=Conversation(conversation))
 
     def persist(self) -> None:

@@ -78,14 +78,12 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
             output = queue.get(timeout=TIMEOUT)
             while COMMAND_EXECUTED not in output.msg:
                 print_system(output.msg)
-                if isinstance(output, StdOut):
-                    outputs.append(output.msg)
-                else:
+                if isinstance(output, StdErr) and ERROR_PREFIX in output.msg:
+                    # Regular errors sometimes get sent to stderr
+                    # Real errors usually have an ERROR:  prefix
                     errors.append(output.msg)
-                    if ERROR_PREFIX in output.msg:
-                        # Regular errors sometimes get sent to stderr
-                        # Real errors usually have an ERROR:  prefix
-                        break
+                    break
+                outputs.append(output.msg)
                 output = queue.get(timeout=TIMEOUT)
 
             if ERROR_PREFIX in output.msg:
