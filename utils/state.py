@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from utils.io import print_system
 
@@ -42,9 +42,23 @@ class Conversation(List[Dict[str, Any]]):
         return len(self) == 0
 
 
+class CommandStatus:
+    SUCCESS = "SUCCESS"
+    ERROR = "ERROR"
+    TIMEOUT = "TIMEOUT"
+
+
 class Command(BaseModel):
     command: str
-    is_success: bool
+    output: List[str] = []
+    status: Literal[
+        CommandStatus.SUCCESS,  # type: ignore
+        CommandStatus.ERROR,  # type: ignore
+        CommandStatus.TIMEOUT,  # type: ignore
+    ]
+
+    def output_str(self) -> str:
+        return "".join(self.output)
 
 
 class State(BaseModel):
@@ -60,7 +74,9 @@ class State(BaseModel):
 
         conversation = Conversation(payload.pop("conversation", []))
         if not conversation.empty():
-            conversation.add_system("Conversation loaded. Say hi and continue the conversation where it was left.")
+            conversation.add_system(
+                "Conversation loaded. Say hi and continue the conversation where it was left."
+            )
         return State(**payload, conversation=Conversation(conversation))
 
     def persist(self) -> None:

@@ -3,10 +3,10 @@ import subprocess
 import threading
 from pydantic import BaseModel
 from queue import Empty, Queue
-from typing import ClassVar, List, Tuple, Type, Union
+from typing import ClassVar, List, Type, Union
 
 from utils.io import print_system
-from utils.state import Command, state
+from utils.state import Command, CommandStatus, state
 
 
 assert "DOCKER_NAME" in os.environ
@@ -40,11 +40,9 @@ class StdErr(BaseModel):
     exit_signal: ClassVar[str] = "EXIT_STDERR"
 
 
-def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
+def execute(commands: List[str]) -> List[Command]:
     global process
     assert process.stdin
-    assert process.stdout
-    assert process.stderr
 
     queue = Queue()
 
@@ -62,68 +60,68 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
     stdout.start()
     stderr.start()
 
-    outputs = []
-    errors = []
-    try:
-        commands.append("pwd")
-        # Iterate over commands
-        for command in commands:
-            process.stdin.write(f"{command}\n")
-            process.stdin.write(f"echo {COMMAND_EXECUTED}\n")  # Signal of executed
-            process.stdin.flush()
-            print_system(f"# {command}")
-            outputs.append(f"# {command}")
+    executed_commands = []
+    status = CommandStatus.SUCCESS
+    # Iterate over commands
+    for command in commands:
+        process.stdin.write(f"{command}\n")
+        process.stdin.write(f"echo {COMMAND_EXECUTED}\n")  # Signal of executed
+        process.stdin.flush()
+        print_system(f"# {command}")
 
-            # Iterate over the command stdout or stderr
+        msgs = []
+        try:  # Catch timeouts
             output = queue.get(timeout=TIMEOUT)
+            # Iterate over the command stdout or stderr until COMMAND_EXECUTED
             while COMMAND_EXECUTED not in output.msg:
+                msgs.append(output.msg)
                 print_system(output.msg)
                 if isinstance(output, StdErr) and ERROR_PREFIX in output.msg:
-                    # Regular errors sometimes get sent to stderr
+                    # Regular outputs sometimes get sent to stderr
                     # Real errors usually have an ERROR:  prefix
-                    errors.append(output.msg)
+                    status = CommandStatus.ERROR
                     break
-                outputs.append(output.msg)
                 output = queue.get(timeout=TIMEOUT)
+        except Empty:
+            # Close connection and re-create
+            process.terminate()
+            process = subprocess.Popen(
+                ["docker", "exec", "-i", DOCKER_NAME, "bash"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+            )
 
-            if ERROR_PREFIX in output.msg:
-                # Exit on error
-                _persist_command(Command(command=command, is_success=False))
-                break
-            _persist_command(Command(command=command, is_success=True))
+            # Exit
+            status = CommandStatus.TIMEOUT
+            break
+        finally:
+            executed_command = Command(command=command, output=msgs, status=status)
+            executed_commands.append(executed_command)
+            _persist_command(executed_command)
 
-        # Signal to exit the threads
-        process.stdin.write(f"echo {StdOut.exit_signal}\n")
-        process.stdin.write(f"{StdErr.exit_signal}\n")
+        if executed_command.status != CommandStatus.SUCCESS:
+            # Stop on error
+            break
 
-        stdout.join()
-        stderr.join()
-    except Empty:
-        # Timeout
-        process.terminate()
-        stdout.join()
-        stderr.join()
+    # Signal to exit the threads
+    assert process.stdin
+    process.stdin.write(f"echo {StdOut.exit_signal}\n")
+    process.stdin.write(f"{StdErr.exit_signal}\n")
 
-        process = subprocess.Popen(
-            ["docker", "exec", "-i", DOCKER_NAME, "bash"],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-        )
-        outputs.append(f"Process is hanging after {TIMEOUT}s. Connection restarted.")
-        outputs_, _ = execute([])
-        outputs.extend(outputs_)
+    stdout.join()
+    stderr.join()
 
-    return outputs, errors
+    return executed_commands
 
 
 def _persist_command(command: Command) -> None:
     state.commands.append(command)
 
 
-def startup() -> Tuple[List[str], List[str]]:
+def startup() -> List[Command]:
     return execute(
         [
             "eval $(ssh-agent -s)",

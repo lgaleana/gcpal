@@ -12,8 +12,11 @@ from utils.docker import execute, state as test_state
 
 class DockerTests(TestCase):
     def test(self):
-        assert execute(["pwd"]) == (["/home"], [])
-        assert execute(["mkdir foo", "cd foo", "ls", "cd ..", "rm -r foo"]) == ([], [])
+        assert execute(["pwd"])[0].output == ["/home"]
+        assert [
+            c.output
+            for c in execute(["mkdir foo", "cd foo", "ls", "cd ..", "rm -r foo"])
+        ] == [[], [], [], [], []]
         assert set(
             [
                 "bin",
@@ -35,16 +38,13 @@ class DockerTests(TestCase):
                 "usr",
                 "var",
             ]
-        ) <= set(execute(["cd ..", "ls"])[0])
-        assert [c.model_dump() for c in test_state.commands] == [
-            {"command": "cd home", "is_success": True},
-            {"command": "pwd", "is_success": True},
-            {"command": "pwd", "is_success": True},
-            {"command": "mkdir foo", "is_success": True},
-            {"command": "cd foo", "is_success": True},
-            {"command": "ls", "is_success": True},
-            {"command": "cd ..", "is_success": True},
-            {"command": "rm -r foo", "is_success": True},
-            {"command": "cd ..", "is_success": True},
-            {"command": "ls", "is_success": True},
+        ) <= set(execute(["cd ..", "ls"])[1].output)
+        assert [c.model_dump_json() for c in test_state.commands[:-1]] == [
+            '{"command":"pwd","output":["/home"],"status":"SUCCESS"}',
+            '{"command":"mkdir foo","output":[],"status":"SUCCESS"}',
+            '{"command":"cd foo","output":[],"status":"SUCCESS"}',
+            '{"command":"ls","output":[],"status":"SUCCESS"}',
+            '{"command":"cd ..","output":[],"status":"SUCCESS"}',
+            '{"command":"rm -r foo","output":[],"status":"SUCCESS"}',
+            '{"command":"cd ..","output":[],"status":"SUCCESS"}',
         ]
