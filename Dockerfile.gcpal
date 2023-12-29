@@ -1,7 +1,8 @@
 FROM ubuntu:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV GOOGLE_APPLICATION_CREDENTIALS=gcpal-409321-c42c171a4684.json
+ENV GOOGLE_APPLICATION_CREDENTIALS=gcp.json
+ENV GITHUB_TOKEN="Set with run"
 
 # Package installation
 RUN apt-get update && apt-get install -y \
@@ -11,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     git \
     software-properties-common
+RUN add-apt-repository -y ppa:git-core/ppa && \
+    apt-get install -y gh
 
 # gcloud
 RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
@@ -25,9 +28,9 @@ RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
 RUN git config --global user.name "lgaleana-LLM" && \
     git config --global user.email "lsgaleana+llm@gmail.com"
 RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
-COPY ssh/id_ed25519 /root/.ssh/id_ed25519
+COPY ssh/github /root/.ssh/github
 RUN eval $(ssh-agent -s) && \
-    ssh-add /root/.ssh/id_ed25519 && \
+    ssh-add /root/.ssh/github && \
     ssh-keyscan -H github.com >> /root/.ssh/known_hosts
 
 # Clean up

@@ -5,7 +5,7 @@ venv
 logs
 __pycache__
 db
-gcpal-409321-c42c171a4684.json
+gcp.json
 
 # WARNING WARNING WARNING
 ssh
