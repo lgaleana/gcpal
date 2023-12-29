@@ -121,3 +121,13 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
 
 def _persist_command(command: Command) -> None:
     state.commands.append(command)
+
+
+def startup() -> Tuple[List[str], List[str]]:
+    return execute(
+        [
+            "eval $(ssh-agent -s)",
+            "ssh-add /root/.ssh/github",
+            "ssh-keyscan -H github.com >> /root/.ssh/known_hosts",
+        ]
+    )
