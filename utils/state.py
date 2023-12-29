@@ -60,7 +60,7 @@ class State(BaseModel):
 
         conversation = Conversation(payload.pop("conversation", []))
         if not conversation.empty():
-            conversation.add_system("Conversation resumed. Say hi and continue.")
+            conversation.add_system("Conversation loaded. Say hi and continue the conversation where it was left.")
         return State(**payload, conversation=Conversation(conversation))
 
     def persist(self) -> None:

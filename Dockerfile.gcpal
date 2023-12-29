@@ -21,6 +21,15 @@ RUN apt-get update && apt-get install -y google-cloud-sdk
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
     sh get-docker.sh
 
+# Set up git
+RUN git config --global user.name "lgaleana-LLM" && \
+    git config --global user.email "lsgaleana+llm@gmail.com"
+RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
+COPY ssh/id_ed25519 /root/.ssh/id_ed25519
+RUN eval $(ssh-agent -s) && \
+    ssh-add /root/.ssh/id_ed25519 && \
+    ssh-keyscan -H github.com >> /root/.ssh/known_hosts
+
 # Clean up
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
