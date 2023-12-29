@@ -37,10 +37,12 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
             if user_message == "y" or user_message == "ok" or user_message == "":
                 outputs, errors = docker.execute(commands)
 
-                stdout = str(outputs)
-                max_len = len(commands) * 30
-                if len(outputs) > max_len:
-                    stdout = f"<long output>... {stdout[-max_len:]}"
+                stdout = []
+                for output in outputs:
+                    if len(output) > 100:
+                        stdout.append(f"... {output[-100:]}")
+                    else:
+                        stdout.append(output)
                 if not errors:
                     conversation.add_tool_response(
                         tool_id=ai_action.payload.id,
@@ -59,7 +61,6 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                 conversation.add_user(user_message)
 
         if user_message == "persist":
-            conversation = Conversation(conversation[:-1])
             conversation.add_user("Please persist the conversation into disk.")
             conversation.add_system("Conversation persisted successfully.")
             state.persist()

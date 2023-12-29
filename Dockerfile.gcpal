@@ -1,0 +1,30 @@
+FROM ubuntu:latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV GOOGLE_APPLICATION_CREDENTIALS=gcpal-409321-1bbf204b5462.json
+
+# Package installation
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    curl \
+    git \
+    software-properties-common
+
+# gcloud
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+RUN apt-get update && apt-get install -y google-cloud-sdk
+
+# Docker
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
+    sh get-docker.sh
+
+# Clean up
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /home
+
+# Default command for the container
+CMD ["bash"]

@@ -3,7 +3,7 @@ import subprocess
 import threading
 from pydantic import BaseModel
 from queue import Empty, Queue
-from typing import ClassVar, List, Tuple, Type
+from typing import ClassVar, List, Tuple, Type, Union
 
 from utils.io import print_system
 from utils.state import Command, state
@@ -21,10 +21,12 @@ process = subprocess.Popen(
     stderr=subprocess.PIPE,
     text=True,
     bufsize=1,
+    universal_newlines=True,
 )
 
 
 COMMAND_EXECUTED = "COMMAND_EXECUTED"
+ERROR_PREFIX = "ERROR_LINE: "
 TIMEOUT = 5
 
 
@@ -33,7 +35,8 @@ class StdOut(BaseModel):
     exit_signal: ClassVar[str] = "EXIT_STDOUT"
 
 
-class StdErr(StdOut):
+class StdErr(BaseModel):
+    msg: str
     exit_signal: ClassVar[str] = "EXIT_STDERR"
 
 
@@ -43,14 +46,14 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
     assert process.stdout
     assert process.stderr
 
-    queue = Queue[StdOut]()
+    queue = Queue()
 
-    def _stream(pipe, q: Queue, output: Type[StdOut]) -> None:
+    def _stream(pipe, q: Queue, output: Type[Union[StdOut, StdErr]]) -> None:
         # Wait for updates from docker
         while True:
             line = pipe.readline().strip()
             q.put(output(msg=line))  # Send message back to the main thread
-            if not line or output.exit_signal in line:
+            if (not line and process.poll() is not None) or output.exit_signal in line:
                 break
 
     # One thread for stdout, one thread for stderr
@@ -68,8 +71,8 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
             process.stdin.write(f"{command}\n")
             process.stdin.write(f"echo {COMMAND_EXECUTED}\n")  # Signal of executed
             process.stdin.flush()
-            print_system(f"#{command}")
-            outputs.append(f"#{command}")
+            print_system(f"# {command}")
+            outputs.append(f"# {command}")
 
             # Iterate over the command stdout or stderr
             output = queue.get(timeout=TIMEOUT)
@@ -79,10 +82,13 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
                     outputs.append(output.msg)
                 else:
                     errors.append(output.msg)
-                    break
+                    if ERROR_PREFIX in output.msg:
+                        # Regular errors sometimes get sent to stderr
+                        # Real errors usually have an ERROR:  prefix
+                        break
                 output = queue.get(timeout=TIMEOUT)
 
-            if isinstance(output, StdErr):
+            if ERROR_PREFIX in output.msg:
                 # Exit on error
                 _persist_command(Command(command=command, is_success=False))
                 break
@@ -109,7 +115,7 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
             bufsize=1,
         )
         outputs.append(f"Process is hanging after {TIMEOUT}s. Connection restarted.")
-        outputs_, _ = execute(["cd home", "pwd"])
+        outputs_, _ = execute([])
         outputs.extend(outputs_)
 
     return outputs, errors
@@ -117,9 +123,3 @@ def execute(commands: List[str]) -> Tuple[List[str], List[str]]:
 
 def _persist_command(command: Command) -> None:
     state.commands.append(command)
-
-
-print_system("Initializing Docker...")
-execute(["cd home"])
-print_system("Done.")
-print_system()
