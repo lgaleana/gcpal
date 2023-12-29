@@ -7,12 +7,12 @@ from utils import state
 
 state.state = state.State()
 
-from utils.docker import execute, state as test_state
+from utils.docker import execute, execute_one, state as test_state
 
 
 class DockerTests(TestCase):
     def test(self):
-        assert execute(["pwd"])[0].output == ["/home"]
+        assert execute_one("pwd") == "/home"
         assert [
             c.output
             for c in execute(["mkdir foo", "cd foo", "ls", "cd ..", "rm -r foo"])

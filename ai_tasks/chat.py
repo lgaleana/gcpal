@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 from ai import llm
 from utils.io import print_system
-from utils.state import Conversation
+from utils.state import Command, Conversation
 
 
 class Action:
@@ -40,18 +40,37 @@ class NextAction(BaseModel):
 PROMPT = """You are a helpful AI assistant that helps software engineers build software, using the best software engineering practices.
 
 You can execute commands by calling the `execute_shell` function. You are inside an Ubuntu docker container.
-The user doesn't have the ability to replace values in those commands, so you must always request that information.
-You should always execute commands yourself instead of deferring to the user.
+
+The packages installed are:
+- python
+- pip
+- venv
+- curl
+- git
+- gcloud
+- docker
+- gh
+You are here:
+```
+{commands}
+```
+
+The user doesn't have the ability to execute commands.
+You must always request the information that you need from them.
 
 Say hi."""
 
 
-def next_action(conversation: Conversation) -> NextAction:
+def next_action(conversation: Conversation, command_list: List[Command]) -> NextAction:
     print_system(conversation)
+
+    commands_str = "\n".join([f"# {c.command}\n{c.output_str()}" for c in command_list])
     next = llm.stream_next(
-        [{"role": "system", "content": PROMPT}] + conversation,
+        [{"role": "system", "content": PROMPT.format(commands=commands_str)}]
+        + conversation,
         tools=TOOLS,
     )
+
     if isinstance(next, str):
         return NextAction(name=Action.CHAT, payload=next)
     return NextAction(

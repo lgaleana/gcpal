@@ -58,7 +58,7 @@ class Command(BaseModel):
     ]
 
     def output_str(self) -> str:
-        return "".join(self.output)
+        return "\n".join(self.output)
 
 
 class State(BaseModel):

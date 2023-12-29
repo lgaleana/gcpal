@@ -15,8 +15,13 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
     if _conversation:
         state.conversation = Conversation(_conversation)
     conversation = state.conversation
+
+    initial_commands = docker.execute(
+        ["cd app", "pwd", "ls", "git log", "source venv/bin/activate", "pip list"]
+    )
+
     while True:
-        ai_action = chat.next_action(conversation)
+        ai_action = chat.next_action(conversation, initial_commands)
 
         if ai_action.name == chat.Action.CHAT and isinstance(ai_action.payload, str):
             conversation.add_assistant(ai_action.payload)

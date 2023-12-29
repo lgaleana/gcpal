@@ -117,6 +117,10 @@ def execute(commands: List[str]) -> List[Command]:
     return executed_commands
 
 
+def execute_one(command: str) -> str:
+    return execute([command])[0].output_str()
+
+
 def _persist_command(command: Command) -> None:
     state.commands.append(command)
 
