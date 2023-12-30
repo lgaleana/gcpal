@@ -51,7 +51,7 @@ def execute(commands: List[str]) -> List[Command]:
         while True:
             line = pipe.readline().strip()
             q.put(output(msg=line))  # Send message back to the main thread
-            if (not line and process.poll() is not None) or output.exit_signal in line:
+            if output.exit_signal in line or (not line and process.poll() is not None):
                 break
 
     # One thread for stdout, one thread for stderr
@@ -83,8 +83,12 @@ def execute(commands: List[str]) -> List[Command]:
                     break
                 output = queue.get(timeout=TIMEOUT)
         except Empty:
-            # Close connection and re-create
+            # Close connection
             process.terminate()
+            stdout.join()
+            stderr.join()
+
+            # Re-create
             process = subprocess.Popen(
                 ["docker", "exec", "-i", DOCKER_NAME, "bash"],
                 stdin=subprocess.PIPE,
@@ -92,11 +96,14 @@ def execute(commands: List[str]) -> List[Command]:
                 stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,
+                universal_newlines=True,
             )
+            startup()
+            adhoc()
 
             # Exit
             status = CommandStatus.TIMEOUT
-            break
+            return executed_commands
         finally:
             executed_command = Command(command=command, output=msgs, status=status)
             executed_commands.append(executed_command)
@@ -107,9 +114,9 @@ def execute(commands: List[str]) -> List[Command]:
             break
 
     # Signal to exit the threads
-    assert process.stdin
     process.stdin.write(f"echo {StdOut.exit_signal}\n")
     process.stdin.write(f"{StdErr.exit_signal}\n")
+    process.stdin.flush()
 
     stdout.join()
     stderr.join()
@@ -117,8 +124,8 @@ def execute(commands: List[str]) -> List[Command]:
     return executed_commands
 
 
-def execute_one(command: str) -> str:
-    return execute([command])[0].output_str()
+def execute_one(command: str) -> Command:
+    return execute([command])[0]
 
 
 def _persist_command(command: Command) -> None:
@@ -131,5 +138,19 @@ def startup() -> List[Command]:
             "eval $(ssh-agent -s)",
             "ssh-add /root/.ssh/github",
             "ssh-keyscan -H github.com >> /root/.ssh/known_hosts",
+        ]
+    )
+
+
+def adhoc() -> List[Command]:
+    return execute(
+        [
+            "whoami",
+            "cd app",
+            "pwd",
+            "ls",
+            "git log",
+            "source venv/bin/activate",
+            "pip list",
         ]
     )
