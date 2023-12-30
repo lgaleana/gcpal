@@ -16,9 +16,7 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
         state.conversation = Conversation(_conversation)
     conversation = state.conversation
 
-    initial_commands = docker.execute(
-        ["cd app", "pwd", "ls", "git log", "source venv/bin/activate", "pip list"]
-    )
+    initial_commands = docker.adhoc()
 
     while True:
         ai_action = chat.next_action(conversation, initial_commands)
@@ -33,31 +31,35 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                 tool_id=ai_action.payload.id,
                 arguments=ai_action.payload.arguments.model_dump_json(),
             )
-            commands = ai_action.payload.arguments.commands
-            command_list = "\n".join(commands)
-            print_system("The following commands will be executed: ")
-            print_system(f"```\n{command_list}\n```")
+            if isinstance(ai_action.payload.arguments, chat.ExecuteShellParams):
+                commands = ai_action.payload.arguments.commands
+                command_list = "\n".join(commands)
+                print_system("The following commands will be executed: ")
+                print_system(f"```\n{command_list}\n```")
 
-            user_message = user_input()
-            if user_message == "y" or user_message == "ok" or user_message == "":
-                executed_commands = docker.execute(commands)
-                stdout, stderr = _process_outputs(executed_commands)
-                if not stderr:
-                    conversation.add_tool_response(
-                        tool_id=ai_action.payload.id,
-                        message=f"Commands executed. Stdout :: {stdout}",
-                    )
+                user_message = user_input()
+                if user_message == "y" or user_message == "ok" or user_message == "":
+                    executed_commands = docker.execute(commands)
+                    stdout, stderr = _process_outputs(executed_commands)
+                    if not stderr:
+                        conversation.add_tool_response(
+                            tool_id=ai_action.payload.id,
+                            message=f"Commands executed. Stdout :: {stdout}",
+                        )
+                    else:
+                        conversation.add_tool_response(
+                            tool_id=ai_action.payload.id,
+                            message=f"Commands produced errors. Stdout :: {stdout}, stderr: {stderr}",
+                        )
                 else:
                     conversation.add_tool_response(
                         tool_id=ai_action.payload.id,
-                        message=f"Commands produced errors. Stdout :: {stdout}, stderr: {stderr}",
+                        message=f"Commands not executed. Reason :: user feedback.",
                     )
+                    conversation.add_user(user_message)
             else:
-                conversation.add_tool_response(
-                    tool_id=ai_action.payload.id,
-                    message=f"Commands not executed. Reason :: user feedback.",
-                )
-                conversation.add_user(user_message)
+                print_system(f"Code: {ai_action.payload.arguments.feature}")
+                user_message = user_input()
 
         if user_message == "persist":
             conversation.add_user("Please persist the conversation into disk.")
