@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from ai_tasks import chat
+from coder_main import run as run_coder
 from utils import docker
 from utils.io import user_input, print_system
 from utils.state import Command, CommandStatus, Conversation, state, State
@@ -27,11 +28,11 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
             conversation.add_user(user_message)
         else:
             assert isinstance(ai_action.payload, chat.Tool)
-            conversation.add_tool(
-                tool_id=ai_action.payload.id,
-                arguments=ai_action.payload.arguments.model_dump_json(),
-            )
             if isinstance(ai_action.payload.arguments, chat.ExecuteShellParams):
+                conversation.add_tool(
+                    tool_id=ai_action.payload.id,
+                    arguments=ai_action.payload.arguments.model_dump_json(),
+                )
                 commands = ai_action.payload.arguments.commands
                 command_list = "\n".join(commands)
                 print_system("The following commands will be executed: ")
@@ -59,7 +60,10 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                     conversation.add_user(user_message)
             else:
                 print_system(f"Code: {ai_action.payload.arguments.feature}")
-                user_message = user_input()
+                conversation.add_assistant(
+                    f"Coder assistant, please write a PR for this feature: {ai_action.payload.arguments.feature}"
+                )
+                run_coder(ai_action.payload.arguments.feature)
 
         if user_message == "persist":
             conversation.add_user("Please persist the conversation into disk.")

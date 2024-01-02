@@ -154,3 +154,13 @@ def adhoc() -> List[Command]:
             "pip list",
         ]
     )
+
+
+def coder() -> List[Command]:
+    return execute(
+        [
+            "ls",
+            "git log",
+            "pip list",
+        ]
+    )
