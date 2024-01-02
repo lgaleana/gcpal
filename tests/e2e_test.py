@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from main import run
+from chat_main import run
 
 
 class Tests(TestCase):
