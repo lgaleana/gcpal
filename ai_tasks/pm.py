@@ -45,7 +45,7 @@ PROMPT = """You are a helpful AI assistant that helps software engineers plan an
 A software project is structured in the following way:
 - Epic: A big user story that needs to be broken down. In agile development, epics usually represent a significant deliverable, such as a new feature or experience.
 - Story: A high-level goal in the eyes of the user. They should be written from the users' point of view.
-- Subtask: The most atomic piece of work that is required to complete a task. Subtasks cannot be subdivided.
+- Subtask: The most atomic piece of work that is required to complete a task. Subtasks cannot be subdivided. A good size for a subtask is 1 day of work.
 
 Your goal is to work with the user and provide suggestions until they are satisfied with the breakdown of their project.
 As you work with the user, you can do it in a top-down fashion. That is:
