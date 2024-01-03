@@ -8,8 +8,11 @@ URL = os.environ["JIRA_URL"]
 AUTH = HTTPBasicAuth(os.environ["JIRA_EMAIL"], os.environ["JIRA_API_KEY"])
 
 
+IssueType = Literal["Epic", "Story", "Subtask"]
+
+
 def create_issue(
-    issue_type: Literal["Epic", "Story", "Task", "Subtask"],
+    issue_type: IssueType,
     summary: str,
     description: str,
     parent_key: Optional[str] = None,

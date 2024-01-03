@@ -25,16 +25,17 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                 tool_id=ai_action.id,
                 arguments=ai_action.arguments.model_dump_json(),
             )
-            # issue = jira.create_issue(
-            #     ai_action.arguments.type_,
-            #     ai_action.arguments.title,
-            #     ai_action.arguments.description,
-            #     ai_action.arguments.parent_key,
-            # )
-            # print_system(issue)
+            print_system(ai_action.arguments)
+            issue = jira.create_issue(
+                ai_action.arguments.type_,
+                ai_action.arguments.title,
+                ai_action.arguments.description,
+                ai_action.arguments.parent_key,
+            )
+            print_system(issue)
             conversation.add_tool_response(
                 tool_id=ai_action.id,
-                message=f"Response :: done",
+                message=f"Issue created successfuly. Key :: {issue['key']}.",
             )
 
 
