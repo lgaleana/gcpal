@@ -5,7 +5,4 @@ venv
 logs
 __pycache__
 db
-gcpal-docker/gcp.json
-
-# WARNING WARNING WARNING
-gcpal-docker/ssh
+gcpal-docker
