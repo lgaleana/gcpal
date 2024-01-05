@@ -18,12 +18,24 @@ class GithubFile(BaseModel):
     name: str
     content: str
 
+    def __str__(self) -> str:
+        return f"{self.name}\n" "```\n" f"{self.content}\n" "```"
+
 
 class Commit(BaseModel):
     sha: str
     author: str
     date: datetime
     message: str
+
+    def __str__(self) -> str:
+        date = self.date.strftime("%a %b %d %H:%M:%S %Y")
+        return (
+            "commit {self.sha}\n"
+            f"Author: {self.author}\n"
+            f"Date:   {date}\n\n"
+            f"    {self.message}"
+        )
 
 
 def get_repo_files() -> List[Optional[GithubFile]]:
@@ -70,26 +82,3 @@ def get_last_commits(n: int):
         )
         for c in commits[:n]
     ]
-
-
-def print_repo():
-    files = get_repo_files()
-    if not files:
-        return
-
-    for file in files:
-        if file:
-            print(file.name)
-            print("```")
-            print(file.content)
-            print("```")
-            print()
-
-
-def print_commits():
-    commits = get_last_commits(10)
-    for commit in commits:
-        date = commit.date.strftime("%a %b %d %H:%M:%S %Y")
-        print(
-            f"commit {commit.sha}\nAuthor: {commit.author}\nDate:   {date}\n\n    {commit.message}\n"
-        )

@@ -1,19 +1,25 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 from ai import llm
-from utils.state import Command, Conversation
+from ai_tasks.chat import Tool
+from utils.github import GithubFile, Commit
+from utils.jira import Issue
+from utils.state import Conversation
 
 
 class Action:
-    COLLECT_INFORMATION = "collect_information"
-    SHARE_PLAN = "share_plan"
     WRITE_PR = "write_pr"
 
 
-class WritePR(BaseModel):
-    pr_content: str = Field(description="What will be included in the PR?")
+class WritePRParams(BaseModel):
+    title: str = Field(description="Title of the PR")
+    description: str = Field(description="Description of the PR")
+    test_plan: str = Field(description="How did you test this PR?")
+    diff_file: str = Field(
+        description="The actual content of the PR, in the format of a diff file"
+    )
 
 
 TOOLS = [
@@ -22,58 +28,73 @@ TOOLS = [
         "function": {
             "name": Action.WRITE_PR,
             "description": "Writes a Pull Request",
-            "parameters": WritePR.schema(),
+            "parameters": WritePRParams.schema(),
         },
     },
 ]
 
 
-PROMPT = """You are a helpful AI assistant that builds features by writing code and creating Pull Requests.
-You must use the best sofwtware engineering practices.
+PROMPT = """You are a helpful AI assistant that writes code and creates Pull Requests.
 
-You must build features incrementally. A single feature can be composed by multiple PRs. The PRs that you write must follow the following criteria:
-1. Have single concern or purpose. That is, they should implement one single functionality. Examples:
-    - Write a method with a single functionality.
-    - Write the first functionality of a method.
-    - Add another functionality to an existing method.
-    - Integrate a method into an existing method.
-    - Fix a bug.
-    - Write an integration test.
-2. Be small. They sould be easy to review.
-3. Include tests. Through the single-concern property, they should be easily tested.
+You are working in the following project
 
-To accomplish the above, it should be clear to you what are the set of PRs needed to build the feature.
+### Project description
 
-Feature to build: {feature}.
+FastAPI application that lets users schedule email sequences to be delivered in the future.
 
-You are working with an already existing codebase, so you must consider what has been built so far.
+### Architecture overview
 
-Directory structure:
+1. **Frontend (User Interface)**: This will be a single page application where users can create, view, edit, and delete email schedules and sequences. It will also display the status of scheduled emails and sequences. The frontend will communicate with the backend via API calls.
+2. **Backend (FastAPI)**: This will handle all the server-side logic of your application. It will have various API endpoints for handling requests related to email schedules and sequences. The backend will be responsible for validating requests, interacting with the database, and returning responses.
+3. **Database**: This will store all the data related to email schedules and sequences, as well as the status of each scheduled email and sequence. The database schema will be designed to efficiently store and retrieve this data.
+4. **Job Scheduler**: This will be a separate process that runs at regular intervals. It will fetch scheduled emails and sequences from the database and send them out in the correct order. It will also update the status of each email and sequence in the database.
+5. **Email Service**: This will be responsible for the actual sending of emails. The job scheduler will interact with this service to send out the emails.
+This architecture separates concerns into distinct components, each responsible for a specific part of the application. This makes the application easier to develop, test, and maintain. It also allows for scalability, as each component can be scaled independently based on its specific load and performance requirements.
+
+### Project tickets
+
+{jira}
+
+### Codebase
+
 ```
-{code}
+{codebase}
 ```
 
-Git history:
+### Last 10 commits
+
 ```
 {git}
 ```
 
-Python packages already installed:
-```
-{pip}
-```"""
+### Requirements
+
+1. Follow the best software engineering practices.
+2. Consider the existing code and the current file structure.
+3. The PR content must be in the format of a diff file.
+4. Include unit tests in the PR. Use mocked data.
+
+### The ticket assigned to you
+
+{ticket}"""
 
 
-def next_action(feature: str, commands: List[Command], conversation: Conversation):
+def next_action(
+    ticket: Issue,
+    conversation: Conversation,
+    all_tickets: List[Issue],
+    repo_files: List[Optional[GithubFile]],
+    commits: List[Commit],
+):
     next = llm.stream_next(
         [
             {
                 "role": "user",
                 "content": PROMPT.format(
-                    feature=feature,
-                    code=commands[0].output_str(),
-                    git=commands[1].output_str(),
-                    pip=commands[2].output_str(),
+                    ticket=ticket,
+                    jira="\n".join(str(t) for t in all_tickets),
+                    codebase="\n".join(str(f) for f in repo_files),
+                    git="\n".join(str(c) for c in commits),
                 ),
             }
         ]

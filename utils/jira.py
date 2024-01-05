@@ -22,6 +22,13 @@ class Issue(BaseModel):
     children: List["Issue"]
     parent_key: Optional[str] = None
 
+    def __str__(self) -> str:
+        return (
+            f"{self.key}: {self.type_} - {self.title}\n"
+            f"{self.description}\n"
+            f"Status: {self.status}"
+        )
+
 
 def create_issue(
     issue_type: IssueType,
@@ -66,7 +73,7 @@ def get_all_issues() -> List[Dict[str, Any]]:
     return response.json().get("issues", [])
 
 
-def get_grouped_issues() -> List[Dict[str, Any]]:
+def get_grouped_issues() -> List[Issue]:
     all_issues = get_all_issues()
 
     epics = {}
@@ -97,3 +104,15 @@ def get_grouped_issues() -> List[Dict[str, Any]]:
         stories[subtask.parent_key].children.append(subtask)
 
     return list(epics.values())
+
+
+def find_issue(issues: List[Issue], key: str) -> Optional[Issue]:
+    for issue in issues:
+        if issue.key.lower() == key.lower():
+            return issue
+
+        found_issue = find_issue(issue.children, key)
+        if found_issue:
+            return found_issue
+
+    return None
