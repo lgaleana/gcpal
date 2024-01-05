@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from ai import llm
 from utils.github import GithubFile, Commit
 from utils.jira import Issue
+from utils.io import print_system
 from utils.state import Conversation
 
 
@@ -12,13 +13,32 @@ class Action:
     WRITE_PR = "write_pr"
 
 
+class File(BaseModel):
+    path: str = Field(description="Path of the file")
+    content: str = Field(description="Content of the file")
+
+    def __str__(self) -> str:
+        return f"{self.path}\n" "```\n" f"{self.content}\n" "```"
+
+
 class WritePRParams(BaseModel):
     title: str = Field(description="Title of the PR")
     description: str = Field(description="Description of the PR")
-    test_plan: str = Field(description="How did you test this PR?")
-    diff_file: str = Field(
-        description="The actual content of the PR, in the format of a diff file, compatibe with `git apply`."
-    )
+    new_files: List[File] = Field(description="New/edited files in the PR")
+    test_files: List[File] = Field(description="New/edited files for tests in the PR")
+    deletes_files: List[str] = Field([], description="Paths of the files to delete")
+
+    def __str__(self) -> str:
+        new_files = "\n\n".join(str(f) for f in self.new_files)
+        test_files = "\n\n".join(str(f) for f in self.test_files)
+        deleted_files = "\n".join(self.deletes_files)
+        return (
+            f"{self.title}\n"
+            f"{self.description}\n"
+            f"{new_files}\n\n"
+            f"{test_files}\n\n"
+            f"{deleted_files}\n\n"
+        )
 
 
 TOOLS = [
@@ -70,8 +90,7 @@ This architecture separates concerns into distinct components, each responsible 
 
 1. Follow the best software engineering practices.
 2. Consider the existing code and the current file structure.
-3. The PR content must be in the format of a diff file, compatible with `git apply`.
-4. Include unit tests in the PR. Use mocked data.
+3. Include unit tests for every change you make. Use mocked data.
 
 ### The ticket assigned to you
 
@@ -100,4 +119,5 @@ def next_action(
         + conversation,
         tools=TOOLS,
     )
+    print_system("Done")
     return next

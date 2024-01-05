@@ -2,7 +2,7 @@ import base64
 import os
 import requests
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 
 
@@ -15,11 +15,11 @@ HEADERS = {
 
 
 class GithubFile(BaseModel):
-    name: str
+    path: str
     content: str
 
     def __str__(self) -> str:
-        return f"{self.name}\n" "```\n" f"{self.content}\n" "```"
+        return f"{self.path}\n" "```\n" f"{self.content}\n" "```"
 
 
 class Commit(BaseModel):
@@ -62,7 +62,7 @@ def get_file_contents(file_path: str) -> Optional[GithubFile]:
         file_data = response.json()
         # Decode the base64 content
         content = base64.b64decode(file_data["content"]).decode("utf-8")
-        return GithubFile(name=file_data["name"], content=content)
+        return GithubFile(path=file_path, content=content)
 
     return None
 
