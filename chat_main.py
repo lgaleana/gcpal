@@ -7,7 +7,7 @@ load_dotenv()
 
 from ai_tasks import chat
 from coder_main import run as run_coder
-from utils import docker
+from utils.docker import commands as docker_commands
 from utils.io import user_input, print_system
 from utils.state import Command, CommandStatus, Conversation, state, State
 
@@ -17,7 +17,7 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
         state.conversation = Conversation(_conversation)
     conversation = state.conversation
 
-    initial_commands = docker.adhoc()
+    initial_commands = docker_commands.adhoc()
 
     while True:
         ai_action = chat.next_action(conversation, initial_commands)
@@ -40,7 +40,7 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
 
                 user_message = user_input()
                 if user_message == "y" or user_message == "ok" or user_message == "":
-                    executed_commands = docker.execute(commands)
+                    executed_commands = docker_commands.execute(commands)
                     stdout, stderr = _process_outputs(executed_commands)
                     if not stderr:
                         conversation.add_tool_response(
@@ -80,7 +80,7 @@ def _process_outputs(executed_commands: List[Command]) -> Tuple[List[str], List[
     for command in executed_commands:
         if command.status == CommandStatus.TIMEOUT:
             stderr.append(
-                f"Process is hanging after {docker.TIMEOUT}s. Connection restarted."
+                f"Process is hanging after {docker_commands.TIMEOUT}s. Connection restarted."
             )
             return stdout, stderr
 
@@ -103,6 +103,6 @@ if __name__ == "__main__":
     if args.new:
         state = State()
 
-    docker.startup()
+    docker_commands.startup()
 
     run()

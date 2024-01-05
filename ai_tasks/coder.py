@@ -3,7 +3,6 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from ai import llm
-from ai_tasks.chat import Tool
 from utils.github import GithubFile, Commit
 from utils.jira import Issue
 from utils.state import Conversation
@@ -18,7 +17,7 @@ class WritePRParams(BaseModel):
     description: str = Field(description="Description of the PR")
     test_plan: str = Field(description="How did you test this PR?")
     diff_file: str = Field(
-        description="The actual content of the PR, in the format of a diff file"
+        description="The actual content of the PR, in the format of a diff file, compatibe with `git apply`."
     )
 
 
@@ -71,7 +70,7 @@ This architecture separates concerns into distinct components, each responsible 
 
 1. Follow the best software engineering practices.
 2. Consider the existing code and the current file structure.
-3. The PR content must be in the format of a diff file.
+3. The PR content must be in the format of a diff file, compatible with `git apply`.
 4. Include unit tests in the PR. Use mocked data.
 
 ### The ticket assigned to you

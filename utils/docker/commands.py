@@ -9,7 +9,6 @@ from utils.io import print_system
 from utils.state import Command, CommandStatus, state
 
 
-assert "DOCKER_NAME" in os.environ
 DOCKER_NAME = os.environ["DOCKER_NAME"]
 
 

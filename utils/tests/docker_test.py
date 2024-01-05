@@ -7,7 +7,7 @@ from utils import state
 
 state.state = state.State()
 
-from utils.docker import execute, execute_one, state as test_state, TIMEOUT
+from utils.docker.commands import execute, execute_one, state as test_state, TIMEOUT
 
 
 class DockerTests(TestCase):
