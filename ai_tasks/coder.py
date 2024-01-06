@@ -15,26 +15,32 @@ class Action:
 
 class File(BaseModel):
     path: str = Field(description="Path of the file")
-    content: str = Field(description="Content of the file")
+    content: str = Field(description="Content of the file. Add a new line at the end.")
 
     def __str__(self) -> str:
-        return f"{self.path}\n" "```\n" f"{self.content}\n" "```"
+        return f"{self.path}\n```\n{self.content}\n```"
 
 
 class WritePRParams(BaseModel):
     title: str = Field(description="Title of the PR")
     description: str = Field(description="Description of the PR")
-    new_files: List[File] = Field(description="New/edited files in the PR")
-    test_files: List[File] = Field(description="New/edited files for tests in the PR")
-    deletes_files: List[str] = Field([], description="Paths of the files to delete")
+    files: List[File] = Field(description="New/edited files in the PR")
+    test_files: List[File] = Field(
+        description="New/edited files for the tests in the PR"
+    )
+    deleted_files: List[str] = Field(
+        [], description="Paths of the files to delete, if any"
+    )
+    git_branch: str = Field(description="Name of the git branch for the new PR")
 
     def __str__(self) -> str:
-        new_files = "\n\n".join(str(f) for f in self.new_files)
+        new_files = "\n\n".join(str(f) for f in self.files)
         test_files = "\n\n".join(str(f) for f in self.test_files)
-        deleted_files = "\n".join(self.deletes_files)
+        deleted_files = "\n".join(self.deleted_files)
         return (
+            f"{self.git_branch}\n"
             f"{self.title}\n"
-            f"{self.description}\n"
+            f"{self.description}\n\n"
             f"{new_files}\n\n"
             f"{test_files}\n\n"
             f"{deleted_files}\n\n"
@@ -86,15 +92,23 @@ This architecture separates concerns into distinct components, each responsible 
 {git}
 ```
 
+### The ticket assigned to you
+
+{ticket}
+
 ### Requirements
 
 1. Follow the best software engineering practices.
-2. Consider the existing code and the current file structure.
-3. Include unit tests for every change you make. Use mocked data.
+2. Consider the existing code.
+3. Follow the best practices to organize your file structure.
+4. Remember to add a new line at the end of each file.
+5. Include unit tests for every change you make. Use mocked data.
 
-### The ticket assigned to you
+### Instructions
 
-{ticket}"""
+1. Let's discuss the implementation.
+2. Once I agree, create the PR.
+"""
 
 
 def next_action(

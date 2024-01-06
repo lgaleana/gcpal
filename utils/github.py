@@ -82,3 +82,16 @@ def get_last_commits(n: int):
         )
         for c in commits[:n]
     ]
+
+
+def create_pr(
+    head: str, base: str, title: str, description: str, test_plan: str
+) -> str:
+    body = f"{description}\n\n### Test Plan\n\n{test_plan}"
+    response = requests.post(
+        "https://api.github.com/repos/lgaleana/email-sequences/pulls",
+        headers=HEADERS,
+        json={"title": title, "body": body, "head": head, "base": base},
+    )
+    response.raise_for_status()
+    return response.json()["html_url"]

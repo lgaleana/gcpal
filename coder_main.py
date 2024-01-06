@@ -14,6 +14,33 @@ from utils.io import user_input, print_system
 from utils.state import CommandStatus, Conversation
 
 
+def _rollback(
+    conversation: Conversation, tool_id: str, branch: str, agent_msg: str
+) -> Conversation:
+    print_system()
+    print_system("!!!!! Rolling back...")
+    docker.execute(
+        [
+            "cd /home/app",
+            "pwd",
+            "source venv/bin/activate",
+            "python3 -m pip uninstall -r requirements.txt -y",  # roll back packages
+            "python3 -m pip install -r requirements.txt",
+            "git restore .",  # roll back files
+            "git clean -fd",  # roll back files
+            "git checkout main",
+            f"git branch -D {branch}",  # roll back branch
+            f"git push origin --delete {branch}",  # rollb back github branch
+        ]
+    )
+    print_system("Rollback successful...")
+    conversation.add_tool_response(
+        tool_id=tool_id,
+        message=f"Error :: {agent_msg}",
+    )
+    return conversation
+
+
 def run() -> None:
     conversation = Conversation()
     tickets = jira.get_grouped_issues()
@@ -34,7 +61,7 @@ def run() -> None:
             user_message = user_input()
             conversation.add_user(user_message)
         else:
-            tool = coder.WritePRParams.parse_obj(ai_action.arguments)
+            tool = coder.WritePRParams.model_validate(ai_action.arguments)
             print_system(tool)
             conversation.add_tool(
                 tool_id=ai_action.id, arguments=json.dumps(ai_action.arguments)
@@ -50,82 +77,103 @@ def run() -> None:
             # Create files locally first
             print_system("Copying files to container...")
             root_path = f"{DIFFS_DIR}/{session}"
-            create_files(tool.new_files + tool.test_files, root_path=root_path)
+            create_files(tool.files + tool.test_files, root_path=root_path)
 
             try:
-                # 1. Copy them to docker container
+                # 1. Create a new branch and checkout
+                branch = docker.execute_one(f"git checkout -b {tool.git_branch}")
+                if (
+                    branch.status == CommandStatus.ERROR
+                    or "fatal:" in branch.output_str()
+                ):
+                    conversation = _rollback(
+                        conversation,
+                        ai_action.id,
+                        tool.git_branch,
+                        f"running :: `{branch.command}`. Error :: {branch.output_str()}",
+                    )
+                    continue
+
+                # 2. Copy files to docker container
                 container.copy_files(
-                    files=tool.new_files + tool.test_files,
+                    files=tool.files + tool.test_files,
                     root=root_path,
                     container_path=f"/home/app",
                 )
-                docker.execute_one("git diff")
+                docker.execute_one("git status")
 
-                # 2. Install new requirements
+                # 3. Install new requirements
                 pip = docker.execute_one("python3 -m pip install -r requirements.txt")
                 if pip.status == CommandStatus.ERROR:
                     conversation = _rollback(
                         conversation,
                         ai_action.id,
+                        tool.git_branch,
                         f"running :: `{pip.command}`. Error :: {pip.output_str()}",
                     )
                     continue
 
-                # 3. Run tests
+                # 4. Run tests
                 pytest = docker.execute_one("python3 -m pytest")
                 if (
                     pytest.status == CommandStatus.ERROR
                     or "= ERRORS =" in pytest.output_str()
+                    or "= FAILURES =" in pytest.output_str()
                 ):
                     conversation = _rollback(
                         conversation,
                         ai_action.id,
+                        tool.git_branch,
                         f"running :: `{pytest.command}`. Error :: {pytest.output_str()}",
+                    )
+                    conversation.add_user(
+                        "Your tests had errors. Fix them and re-create the PR. Go."
                     )
                     continue
 
-                # 4. Create commit
+                # 5. Create commit and push
+                commit_commands = docker.execute(
+                    [
+                        "git add .",
+                        f'git commit -m "{tool.title}"',
+                        f"git push origin {tool.git_branch}",
+                    ]
+                )
+                for c in commit_commands:
+                    if c.status == CommandStatus.ERROR:
+                        conversation = _rollback(
+                            conversation,
+                            ai_action.id,
+                            tool.git_branch,
+                            f"running :: `{c.command}`. Error :: {c.output_str()}",
+                        )
+                        continue
 
-                # 5. Push to github
+                # 5. Create PR
+                pr_url = github.create_pr(
+                    head=tool.git_branch,
+                    base="main",
+                    title=tool.title,
+                    description=tool.description,
+                    test_plan="pytest",
+                )
             except Exception as e:
+                print_system(f"!!!!! ERROR: {e}")
                 conversation = _rollback(
                     conversation,
                     ai_action.id,
+                    tool.git_branch,
                     str(e),
                 )
                 continue
 
             conversation.add_tool_response(
                 tool_id=ai_action.id,
-                message=(
-                    f"`{pip.command}` succeeded\n"
-                    f"`{pytest.command}` succeeded\n"
-                    "PR created successfully"
-                ),
+                message=(f"PR created successfully :: {pr_url}"),
             )
-            print_system("Success.")
+            print_system(pr_url)
             user_message = user_input()
 
 
 if __name__ == "__main__":
     run()
-
-
-def _rollback(conversation: Conversation, tool_id: str, agent_msg: str) -> Conversation:
-    print_system("Rolling back...")
-    docker.execute(
-        [
-            "cd /home/app",
-            "pwd",
-            "source venv/bin/activate",
-            "git restore .",  # roll back files
-            "git clean -fd",  # roll back files
-            "python3 -m pip uninstall -r requirements.txt -y",  # roll back packages
-            "python3 -m pip install -r requirements.txt",
-        ]
-    )
-    conversation.add_tool_response(
-        tool_id=tool_id,
-        message=f"Error :: {agent_msg}",
-    )
-    return conversation
