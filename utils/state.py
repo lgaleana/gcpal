@@ -62,6 +62,8 @@ class Command(BaseModel):
 
 
 class State(BaseModel):
+    name: str
+    agent: str
     conversation: Conversation = Conversation()
     commands: List[Command] = []
 
@@ -70,7 +72,7 @@ class State(BaseModel):
 
     @staticmethod
     def load() -> "State":
-        from db.state import payload
+        from db.devops.state import payload
 
         conversation = Conversation(payload.pop("conversation", []))
         if not conversation.empty():
@@ -84,10 +86,5 @@ class State(BaseModel):
         payload_str = payload_str.replace(": null\n", ": None\n")
         payload_str = payload_str.replace(": true\n", ": True\n")
         payload_str = payload_str.replace(": false\n", ": False\n")
-        with open("db/state.py", "w") as file:
+        with open(f"db/{self.agent}/{self.name}.py", "w") as file:
             file.write(payload_str)
-        print_system("State persisted successfully: ")
-        print_system(payload_str)
-
-
-state = State.load()

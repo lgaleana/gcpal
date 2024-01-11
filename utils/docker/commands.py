@@ -6,7 +6,7 @@ from queue import Empty, Queue
 from typing import ClassVar, List, Type, Union
 
 from utils.io import print_system
-from utils.state import Command, CommandStatus, state
+from utils.state import Command, CommandStatus
 
 
 DOCKER_NAME = os.environ["DOCKER_NAME"]
@@ -27,6 +27,8 @@ process = subprocess.Popen(
 COMMAND_EXECUTED = "COMMAND_EXECUTED"
 ERROR_PREFIX = "ERROR_LINE: "
 TIMEOUT = 5
+
+command_list = []
 
 
 class StdOut(BaseModel):
@@ -98,7 +100,7 @@ def execute(commands: List[str]) -> List[Command]:
                 universal_newlines=True,
             )
             startup()
-            adhoc()
+            coder()
 
             # Exit
             status = CommandStatus.TIMEOUT
@@ -128,7 +130,7 @@ def execute_one(command: str) -> Command:
 
 
 def _persist_command(command: Command) -> None:
-    state.commands.append(command)
+    command_list.append(command)
 
 
 def startup() -> List[Command]:
@@ -156,10 +158,4 @@ def adhoc() -> List[Command]:
 
 
 def coder() -> List[Command]:
-    return execute(
-        [
-            "ls",
-            "git log",
-            "pip list",
-        ]
-    )
+    return execute(["cd /home/app", "pwd", "source venv/bin/activate"])

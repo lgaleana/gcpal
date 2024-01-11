@@ -11,7 +11,7 @@ from utils import jira
 from utils.files import create_files, DIFFS_DIR
 from utils.docker import commands as docker, container
 from utils.io import user_input, print_system
-from utils.state import CommandStatus, Conversation
+from utils.state import CommandStatus, Conversation, State
 
 
 def _rollback(
@@ -49,8 +49,15 @@ def run() -> None:
     active_ticket = jira.find_issue(tickets, "SBX-50")
     assert active_ticket
     docker.startup()
-    docker.execute(["cd /home/app", "pwd", "source venv/bin/activate"])
+    docker.coder()
     session = str(time.time())
+
+    state = State(
+        name=session,
+        agent="coder",
+        conversation=conversation,
+        commands=docker.command_list,
+    )
 
     while True:
         ai_action = coder.next_action(
@@ -72,6 +79,7 @@ def run() -> None:
                     tool_id=ai_action.id,
                     message=f"Didn't execute. Reason: user feedback :: {user_message}",
                 )
+                state.persist()
                 continue
 
             # Create files locally first
@@ -92,6 +100,7 @@ def run() -> None:
                         tool.git_branch,
                         f"running :: `{branch.command}`. Error :: {branch.output_str()}",
                     )
+                    state.persist()
                     continue
 
                 # 2. Copy files to docker container
@@ -111,6 +120,7 @@ def run() -> None:
                         tool.git_branch,
                         f"running :: `{pip.command}`. Error :: {pip.output_str()}",
                     )
+                    state.persist()
                     continue
 
                 # 4. Run tests
@@ -129,6 +139,7 @@ def run() -> None:
                     conversation.add_user(
                         "Your tests had errors. Fix them and re-create the PR. Go."
                     )
+                    state.persist()
                     continue
 
                 # 5. Create commit and push
@@ -147,6 +158,7 @@ def run() -> None:
                             tool.git_branch,
                             f"running :: `{c.command}`. Error :: {c.output_str()}",
                         )
+                        state.persist()
                         continue
 
                 # 5. Create PR
@@ -165,6 +177,7 @@ def run() -> None:
                     tool.git_branch,
                     str(e),
                 )
+                state.persist()
                 continue
 
             conversation.add_tool_response(
@@ -173,6 +186,7 @@ def run() -> None:
             )
             print_system(pr_url)
             user_message = user_input()
+        state.persist()
 
 
 if __name__ == "__main__":
