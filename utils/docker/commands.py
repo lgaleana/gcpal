@@ -6,6 +6,7 @@ from queue import Empty, Queue
 from typing import ClassVar, List, Type, Union
 
 from utils.io import print_system
+from utils import state
 from utils.state import Command, CommandStatus
 
 
@@ -27,8 +28,6 @@ process = subprocess.Popen(
 COMMAND_EXECUTED = "COMMAND_EXECUTED"
 ERROR_PREFIX = "ERROR_LINE: "
 TIMEOUT = 5
-
-command_list = []
 
 
 class StdOut(BaseModel):
@@ -130,7 +129,7 @@ def execute_one(command: str) -> Command:
 
 
 def _persist_command(command: Command) -> None:
-    command_list.append(command)
+    state.command_list.append(command)
 
 
 def startup() -> List[Command]:

@@ -60,11 +60,13 @@ class Command(BaseModel):
         return "\n".join(self.output)
 
 
+command_list = []
+
+
 class State(BaseModel):
     name: str
     agent: str
     conversation: Conversation = Conversation()
-    commands: List[Command] = []
 
     class Config:
         arbitrary_types_allowed = True
@@ -77,10 +79,13 @@ class State(BaseModel):
         return State(
             name=name,
             agent=agent,
-            conversation=payload.conversation,
-            commands=payload.commands,
+            conversation=Conversation(payload["conversation"]),
         )
 
     def persist(self) -> None:
+        payload = {
+            "conversation": self.model_dump(),
+            "commands": command_list,
+        }
         with open(f"db/{self.agent}/{self.name}.json", "w") as file:
-            json.dump(self.model_dump_json(), file, indent=4)
+            json.dump(payload, file, indent=4)

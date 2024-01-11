@@ -134,8 +134,8 @@ def run(state: State) -> None:
                         tool.git_branch,
                         f"running :: `{pytest.command}`. Error :: {pytest.output_str()}",
                     )
-                    conversation.add_system(
-                        "Your tests had errors. Fix them and re-create the PR."
+                    conversation.add_user(
+                        "Your tests had errors. Fix them and re-create the PR. Go."
                     )
                     state.persist()
                     continue
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--last", action="store_true")
-    group.add_argument("filename", nargs="?")
+    group.add_argument("name", nargs="?")
     args = parser.parse_args()
 
     states_dir = f"db/{AGENT}/"
@@ -200,9 +200,8 @@ if __name__ == "__main__":
         states.sort()
         name = states[-1].replace(".json", "")
         state = State.load(name, AGENT)
-    elif args.filename:
-        name = args.filename.replace(".json", "")
-        state = State.load(name, AGENT)
+    elif args.name:
+        state = State.load(args.name, AGENT)
     else:
         state = State(
             name=str(time.time()), agent=AGENT, conversation=Conversation(), commands=[]
