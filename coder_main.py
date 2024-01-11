@@ -1,4 +1,6 @@
+import argparse
 import json
+import os
 import time
 
 from dotenv import load_dotenv
@@ -12,6 +14,9 @@ from utils.files import create_files, DIFFS_DIR
 from utils.docker import commands as docker, container
 from utils.io import user_input, print_system
 from utils.state import CommandStatus, Conversation, State
+
+
+AGENT = "coder"
 
 
 def _rollback(
@@ -41,8 +46,7 @@ def _rollback(
     return conversation
 
 
-def run() -> None:
-    conversation = Conversation()
+def run(state: State) -> None:
     tickets = jira.get_grouped_issues()
     codebase = github.get_repo_files()
     git_history = github.get_last_commits(n=10)
@@ -50,14 +54,8 @@ def run() -> None:
     assert active_ticket
     docker.startup()
     docker.coder()
-    session = str(time.time())
 
-    state = State(
-        name=session,
-        agent="coder",
-        conversation=conversation,
-        commands=docker.command_list,
-    )
+    conversation = state.conversation
 
     while True:
         ai_action = coder.next_action(
@@ -84,7 +82,7 @@ def run() -> None:
 
             # Create files locally first
             print_system("Copying files to container...")
-            root_path = f"{DIFFS_DIR}/{session}"
+            root_path = f"{DIFFS_DIR}/{state.name}"
             create_files(tool.files + tool.test_files, root_path=root_path)
 
             try:
@@ -136,8 +134,8 @@ def run() -> None:
                         tool.git_branch,
                         f"running :: `{pytest.command}`. Error :: {pytest.output_str()}",
                     )
-                    conversation.add_user(
-                        "Your tests had errors. Fix them and re-create the PR. Go."
+                    conversation.add_system(
+                        "Your tests had errors. Fix them and re-create the PR."
                     )
                     state.persist()
                     continue
@@ -185,9 +183,29 @@ def run() -> None:
                 message=(f"PR created successfully :: {pr_url}"),
             )
             print_system(pr_url)
-            user_message = user_input()
         state.persist()
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--last", action="store_true")
+    group.add_argument("filename", nargs="?")
+    args = parser.parse_args()
+
+    states_dir = f"db/{AGENT}/"
+    if args.last:
+        states = os.listdir("db/coder/")
+        states = [f for f in states if os.path.isfile(os.path.join(states_dir, f))]
+        states.sort()
+        name = states[-1].replace(".json", "")
+        state = State.load(name, AGENT)
+    elif args.filename:
+        name = args.filename.replace(".json", "")
+        state = State.load(name, AGENT)
+    else:
+        state = State(
+            name=str(time.time()), agent=AGENT, conversation=Conversation(), commands=[]
+        )
+
+    run(state)

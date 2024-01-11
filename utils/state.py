@@ -1,7 +1,6 @@
+import json
 from pydantic import BaseModel
 from typing import Any, Dict, List, Literal, Optional
-
-from utils.io import print_system
 
 
 class Conversation(List[Dict[str, Any]]):
@@ -71,20 +70,17 @@ class State(BaseModel):
         arbitrary_types_allowed = True
 
     @staticmethod
-    def load() -> "State":
-        from db.devops.state import payload
+    def load(name: str, agent: str) -> "State":
+        with open(f"db/{agent}/{name}.json", "r") as file:
+            payload = json.load(file)
 
-        conversation = Conversation(payload.pop("conversation", []))
-        if not conversation.empty():
-            conversation.add_system(
-                "Conversation loaded. Say hi and continue the conversation where it was left."
-            )
-        return State(**payload, conversation=Conversation(conversation))
+        return State(
+            name=name,
+            agent=agent,
+            conversation=payload.conversation,
+            commands=payload.commands,
+        )
 
     def persist(self) -> None:
-        payload_str = "payload = " + self.model_dump_json(indent=4)
-        payload_str = payload_str.replace(": null\n", ": None\n")
-        payload_str = payload_str.replace(": true\n", ": True\n")
-        payload_str = payload_str.replace(": false\n", ": False\n")
-        with open(f"db/{self.agent}/{self.name}.py", "w") as file:
-            file.write(payload_str)
+        with open(f"db/{self.agent}/{self.name}.json", "w") as file:
+            json.dump(self.model_dump_json(), file, indent=4)

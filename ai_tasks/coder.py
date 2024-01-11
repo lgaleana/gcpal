@@ -106,8 +106,8 @@ This architecture separates concerns into distinct components, each responsible 
 
 ### Instructions
 
-1. Let's discuss the implementation.
-2. Once I agree, create the PR.
+1. Discuss the implementation with me.
+2. Only once I agree, create the PR.
 """
 
 
