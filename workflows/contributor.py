@@ -1,3 +1,4 @@
+import argparse
 import json
 import time
 
@@ -22,9 +23,10 @@ def run(context_state: State, state: State) -> None:
 
     conversation = state.conversation
 
-    comments_since = github.get_comments_since(6, "lgaleana-llm")
+    comments_since = github.get_comments_since(int(state.name), "lgaleana-llm")
     conversation.add_user("You have new comments in your PR:")
     comment = comments_since[-1]
+    print_system(comment)
     conversation.add_user(
         f"{comment.author}: {comment.body}\n```{comment.diff_hunk}```"
     )
@@ -32,8 +34,13 @@ def run(context_state: State, state: State) -> None:
     ai_action = contributor.next_action(context_state.conversation, conversation)
     if isinstance(ai_action, str):
         conversation.add_assistant(ai_action)
-        github.reply_to_comment(pr_number=6, comment_id=comment.id, reply=ai_action)
-        state.persist()
+        user_message = user_input()
+        if user_message == "y":
+            github.reply_to_comment(pr_number=int(state.name), comment_id=comment.id, reply=ai_action)
+            state.persist()
+            print_system("Comment saved ::")
+        else:
+            print_system("Comment not saved.")
     else:
         tool = contributor.AmendPRParams.model_validate(ai_action.arguments)
         print_system(tool)
@@ -44,6 +51,16 @@ def run(context_state: State, state: State) -> None:
 
 
 if __name__ == "__main__":
-    context_state = State.load("1705016334.5167592", CODER_AGENT)
-    state = State(name=str(time.time()), agent=AGENT, conversation=Conversation())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("context", type=str)
+    parser.add_argument("name", type=str, default=None)
+    args = parser.parse_args()
+
+    states_dir = f"db/{AGENT}/"
+    if args.name:
+        state = State.load(args.name, AGENT)
+    else:
+        state = State(name=args.name, agent=AGENT, conversation=Conversation())
+    context_state = State.load(args.context, CODER_AGENT)
+
     run(context_state, state)

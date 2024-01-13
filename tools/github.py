@@ -42,8 +42,8 @@ class GithubComment(BaseModel):
     id: int
     author: str
     body: str
-    diff_hunk: str
-    node_id: str
+    created_at: datetime
+    diff_hunk: Optional[str] = None
 
 
 def get_repo_files() -> List[Optional[GithubFile]]:
@@ -105,32 +105,54 @@ def create_pr(
     return response.json()["html_url"]
 
 
-def get_comments_since(pr_number: int, username: str) -> List[GithubComment]:
+def get_review_comments(pr_number: int) -> List[GithubComment]:
     response = requests.get(
         f"https://api.github.com/repos/lgaleana/email-sequences/pulls/{pr_number}/comments",
         headers=HEADERS,
     )
     response.raise_for_status()
-    comments = response.json()
-
-    # Find the last comment by the user
-    last_user_comment_index = -1
-    for i, comment in enumerate(comments):
-        if comment["user"]["login"] == username:
-            last_user_comment_index = i
-
-    # All comments after the user's last comment
-    comments = comments[last_user_comment_index + 1 :]
     return [
         GithubComment(
             id=c["id"],
             author=c["user"]["login"],
             body=c["body"],
+            created_at=datetime.strptime(c["created_at"], "%Y-%m-%dT%H:%M:%SZ"),
             diff_hunk=c["diff_hunk"],
-            node_id=c["node_id"],
         )
-        for c in comments
+        for c in response.json()
     ]
+
+
+def get_issue_comments(pr_number: int) -> List[GithubComment]:
+    response = requests.get(
+        f"https://api.github.com/repos/lgaleana/email-sequences/issues/{pr_number}/comments",
+        headers=HEADERS,
+    )
+    response.raise_for_status()
+    return [
+        GithubComment(
+            id=c["id"],
+            author=c["user"]["login"],
+            body=c["body"],
+            created_at=datetime.strptime(c["created_at"], "%Y-%m-%dT%H:%M:%SZ"),
+        )
+        for c in response.json()
+    ]
+
+
+def get_comments_since(pr_number: int, username: str) -> List[GithubComment]:
+    review_comments = get_review_comments(pr_number)
+    issue_comments = get_issue_comments(pr_number)
+    all_comments = sorted(review_comments + issue_comments, key=lambda c: c.created_at)
+
+    # Find the last comment by the user
+    last_user_comment_index = -1
+    for i, comment in enumerate(all_comments):
+        if comment.author == username:
+            last_user_comment_index = i
+
+    # All comments after the user's last comment
+    return all_comments[last_user_comment_index + 1 :]
 
 
 def reply_to_comment(pr_number: int, comment_id: int, reply: str) -> None:
@@ -140,6 +162,7 @@ def reply_to_comment(pr_number: int, comment_id: int, reply: str) -> None:
         headers=HEADERS,
     )
     response.raise_for_status()
+    print(response.json())
 
 
 def reply_to_comment_gql(node_id: str, reply: str) -> None:
