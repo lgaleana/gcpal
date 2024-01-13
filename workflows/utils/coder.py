@@ -1,15 +1,13 @@
+import time
 from typing import Union
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
-from agents import coder
+from agents.coder import WritePRParams
+from agents.contributor import AmendPRParams
 from tools import github
 from tools.files import create_files, DIFFS_DIR
 from tools.docker import commands as docker, container
 from utils.io import print_system
-from utils.state import CommandStatus, Conversation
+from utils.state import CommandStatus
 
 
 class PRError(Exception):
@@ -20,14 +18,19 @@ class TestsError(PRError):
     pass
 
 
-def create_pr(tool: coder.WritePRParams, state_name: str) -> Union[bool, str]:
+def create_or_edit_pr(
+    tool: Union[WritePRParams, AmendPRParams], state_name: str
+) -> str:
     # Create files locally first
     print_system("Copying files to container...")
-    root_path = f"{DIFFS_DIR}/{state_name}"
+    root_path = f"{DIFFS_DIR}/{state_name}/{time.time()}"
     create_files(tool.files + tool.test_files, root_path=root_path)
 
-    # 1. Create a new branch and checkout
-    branch = docker.execute_one(f"git checkout -b {tool.git_branch}")
+    # 1. Move to branch
+    if isinstance(tool, WritePRParams):
+        branch = docker.execute_one(f"git checkout -b {tool.git_branch}")
+    else:
+        branch = docker.execute_one(f"git checkout {tool.git_branch}")
     if branch.status == CommandStatus.ERROR or "fatal:" in branch.output_str():
         raise PRError(
             f"Error running :: `{branch.command}`. Error :: {branch.output_str()}"
@@ -69,21 +72,21 @@ def create_pr(tool: coder.WritePRParams, state_name: str) -> Union[bool, str]:
         if c.status == CommandStatus.ERROR:
             raise PRError(f"Error running :: `{c.command}`. Error :: {c.output_str()}")
 
-    # 6. Create PR
-    pr_url = github.create_pr(
-        head=tool.git_branch,
-        base="main",
-        title=tool.title,
-        description=tool.description,
-        test_plan="pytest",
-    )
+    if isinstance(tool, WritePRParams):
+        # 6. Create PR
+        pr_url = github.create_pr(
+            head=tool.git_branch,
+            base="main",
+            title=tool.title,
+            description=tool.description,
+            test_plan="pytest",
+        )
+        return pr_url
+    else:
+        return tool.pr_url
 
-    return pr_url
 
-
-def rollback(
-    conversation: Conversation, tool_id: str, branch: str, err_msg: str
-) -> Conversation:
+def rollback(branch: str) -> None:
     print_system()
     print_system("!!!!! Rolling back...")
     docker.execute(
@@ -101,8 +104,7 @@ def rollback(
         ]
     )
     print_system("Rollback successful...")
-    conversation.add_tool_response(
-        tool_id=tool_id,
-        message=err_msg,
-    )
-    return conversation
+
+
+def create_pr(tool: WritePRParams, state_name: str) -> str:
+    return create_or_edit_pr(tool, state_name)

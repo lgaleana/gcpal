@@ -63,11 +63,10 @@ def run(state: State, ticket_key: str) -> None:
                 print_system(pr_url)
             except Exception as e:
                 print_system(f"!!!!! ERROR: {e}")
-                conversation = rollback(
-                    conversation,
-                    ai_action.id,
-                    tool.git_branch,
-                    str(e),
+                rollback(tool.git_branch)
+                conversation.add_tool_response(
+                    tool_id=ai_action.id,
+                    message=str(e),
                 )
                 if isinstance(e, TestsError):
                     conversation.add_user(

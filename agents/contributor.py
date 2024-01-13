@@ -11,8 +11,8 @@ class Action:
     AMEND_PR = "amend_pr"
 
 
-class AmendPRParams(BaseModel):
-    message: str = Field(description="Commit message")
+class _AmendPRParams(BaseModel):
+    title: str = Field(description="Commit message")
     description: Optional[str] = Field(
         None, description="New PR description, if it needs to change"
     )
@@ -25,7 +25,7 @@ class AmendPRParams(BaseModel):
     )
 
     def __str__(self) -> str:
-        header = f"{self.message}\n"
+        header = f"{self.title}\n"
         if self.description:
             header += f"{self.description}\n"
         new_files = "\n\n".join(str(f) for f in self.files)
@@ -34,13 +34,18 @@ class AmendPRParams(BaseModel):
         return f"{header}\n{new_files}\n\n{test_files}\n\n{deleted_files}\n\n"
 
 
+class AmendPRParams(_AmendPRParams):
+    git_branch: str
+    pr_url: str
+
+
 TOOLS = [
     {
         "type": "function",
         "function": {
             "name": Action.AMEND_PR,
             "description": "Amend the Pull Request with a new commit",
-            "parameters": AmendPRParams.schema(),
+            "parameters": _AmendPRParams.schema(),
         },
     },
 ]
@@ -50,6 +55,7 @@ PROMPT = """Pull Request 6 was created successfully.
 
 ### New Instructions
 
+Your github username is lgaleana-llm.
 You can directly amend the previous PR or reply to comments."""
 
 

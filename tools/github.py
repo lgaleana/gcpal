@@ -45,6 +45,9 @@ class GithubComment(BaseModel):
     created_at: datetime
     diff_hunk: Optional[str] = None
 
+    def __str__(self) -> str:
+        return f"{self.author}:\n  {self.body}"
+
 
 def get_repo_files() -> List[Optional[GithubFile]]:
     response = requests.get(
