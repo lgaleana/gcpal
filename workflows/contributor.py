@@ -12,8 +12,8 @@ from tools import github
 from tools.docker import commands as docker
 from utils.io import user_input, print_system
 from utils.state import Conversation, State
-from workflows.utils.coder import TestsError
-from workflows.utils.contributor import edit_pr, rollback
+from workflows.actions.coder_actions import TestsError
+from workflows.actions.contributor_actions import edit_pr, rollback
 
 
 AGENT = "contributor"

@@ -13,7 +13,7 @@ from tools import jira
 from tools.docker import commands as docker
 from utils.io import user_input, print_system
 from utils.state import Conversation, State
-from workflows.utils.coder import create_pr, rollback, TestsError
+from workflows.actions.coder_actions import create_pr, rollback, TestsError
 
 
 AGENT = "coder"

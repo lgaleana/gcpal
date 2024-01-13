@@ -1,7 +1,7 @@
 from agents.contributor import AmendPRParams
 from tools.docker import commands as docker
 from utils.io import print_system
-from workflows.utils.coder import create_or_edit_pr
+from workflows.actions.coder_actions import create_or_edit_pr
 
 
 def rollback() -> None:
