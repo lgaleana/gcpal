@@ -57,8 +57,9 @@ PROMPT = """Pull Request 6 was created successfully.
 ### New Instructions
 
 1. Improve upon the PR.
-2. Pay attention to every comment and address it.
-3. When ready, make the change. No need to ask for my confirmation."""
+2. Use the best software engineering practices.
+3. Pay attention to every comment and address it.
+4. When ready, make the change. No need to ask for my confirmation."""
 
 
 def next_action(
