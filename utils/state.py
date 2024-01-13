@@ -83,9 +83,7 @@ class State(BaseModel):
         )
 
     def persist(self) -> None:
-        payload = {
-            "conversation": self.model_dump(),
-            "commands": command_list,
-        }
+        payload = self.model_dump()
+        payload["commands"] = [c.json() for c in command_list]
         with open(f"db/{self.agent}/{self.name}.json", "w") as file:
             json.dump(payload, file, indent=4)

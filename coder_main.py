@@ -30,10 +30,10 @@ def _rollback(
             "pwd",
             "source venv/bin/activate",
             "python3 -m pip uninstall -r requirements.txt -y",  # roll back packages
-            "python3 -m pip install -r requirements.txt",
+            "python3 -m pip install -r requirements.txt",  # roll back packages
             "git restore .",  # roll back files
             "git clean -fd",  # roll back files
-            "git checkout main",
+            "git checkout main",  # roll back branch
             f"git branch -D {branch}",  # roll back branch
             f"git push origin --delete {branch}",  # rollb back github branch
         ]
@@ -203,8 +203,6 @@ if __name__ == "__main__":
     elif args.name:
         state = State.load(args.name, AGENT)
     else:
-        state = State(
-            name=str(time.time()), agent=AGENT, conversation=Conversation(), commands=[]
-        )
+        state = State(name=str(time.time()), agent=AGENT, conversation=Conversation())
 
     run(state)

@@ -38,6 +38,12 @@ class Commit(BaseModel):
         )
 
 
+class GithubComment(BaseModel):
+    author: str
+    body: str
+    diff_hunk: str
+
+
 def get_repo_files() -> List[Optional[GithubFile]]:
     response = requests.get(
         "https://api.github.com/repos/lgaleana/email-sequences/git/trees/main?recursive=1",
@@ -95,3 +101,27 @@ def create_pr(
     )
     response.raise_for_status()
     return response.json()["html_url"]
+
+
+def get_comments_since(pr_number: int, username: str) -> List[GithubComment]:
+    response = requests.get(
+        f"https://api.github.com/repos/lgaleana/email-sequences/pulls/{pr_number}/comments",
+        headers=HEADERS,
+    )
+    response.raise_for_status()
+    comments = response.json()
+
+    # Find the last comment by the user
+    last_user_comment_index = -1
+    for i, comment in enumerate(comments):
+        if comment["user"]["login"] == username:
+            last_user_comment_index = i
+
+    # All comments after the user's last comment
+    comments = comments[last_user_comment_index + 1 :]
+    return [
+        GithubComment(
+            author=c["user"]["login"], body=c["body"], diff_hunk=c["diff_hunk"]
+        )
+        for c in comments
+    ]

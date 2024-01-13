@@ -99,7 +99,7 @@ def execute(commands: List[str]) -> List[Command]:
                 universal_newlines=True,
             )
             startup()
-            coder()
+            pr_coder()
 
             # Exit
             status = CommandStatus.TIMEOUT
@@ -157,4 +157,17 @@ def adhoc() -> List[Command]:
 
 
 def coder() -> List[Command]:
-    return execute(["cd /home/app", "pwd", "source venv/bin/activate"])
+    return execute(
+        ["cd /home/app", "pwd", "source venv/bin/activate", "git checkout main"]
+    )
+
+
+def pr_coder() -> List[Command]:
+    return execute(
+        [
+            "cd /home/app",
+            "pwd",
+            "source venv/bin/activate",
+            "git checkout SBX-50-database-schema",
+        ]
+    )
