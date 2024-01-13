@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from agents import devops
-from workflows.coder import run as run_coder
+from workflows.write_pr import run as run_coder
 from tools.docker import commands as docker
 from utils.io import user_input, print_system
 from utils.state import Command, CommandStatus, Conversation, state, State

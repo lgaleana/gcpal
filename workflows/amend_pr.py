@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from agents import contributor
-from workflows.coder import AGENT as CODER_AGENT
+from workflows.write_pr import AGENT as CODER_AGENT
 from tools import github
 from tools.docker import commands as docker
 from utils.io import user_input, print_system
