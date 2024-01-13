@@ -17,13 +17,13 @@ from utils.state import Conversation, State
 AGENT = "contributor"
 
 
-def run(context_state: State, state: State) -> None:
+def run(context_state: State, state: State, pr_number: int) -> None:
     docker.startup()
     docker.pr_coder()
 
     conversation = state.conversation
 
-    comments_since = github.get_comments_since(int(state.name), "lgaleana-llm")
+    comments_since = github.get_comments_since(pr_number, "lgaleana-llm")
     conversation.add_user("You have new comments in your PR:")
     comment = comments_since[-1]
     print_system(comment)
@@ -36,7 +36,7 @@ def run(context_state: State, state: State) -> None:
         conversation.add_assistant(ai_action)
         user_message = user_input()
         if user_message == "y":
-            github.reply_to_comment(pr_number=int(state.name), comment_id=comment.id, reply=ai_action)
+            github.reply_to_comment(pr_number, comment.id, reply=ai_action)
             state.persist()
             print_system("Comment saved ::")
         else:
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     if args.name:
         state = State.load(args.name, AGENT)
     else:
-        state = State(name=args.name, agent=AGENT, conversation=Conversation())
+        state = State(name=str(time.time()), agent=AGENT, conversation=Conversation())
     context_state = State.load(args.context, CODER_AGENT)
 
-    run(context_state, state)
+    run(context_state, state, 6)
