@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from agents import contributor
+from agents.coder import WritePRParams
 from workflows.coder import AGENT as CODER_AGENT
 from tools import github
 from tools.docker import commands as docker
@@ -38,7 +39,7 @@ def run(state: State) -> None:
                 f"{comment.author}: {user_message}\n```{comment.diff_hunk}```"
             )
         else:
-            tool = contributor.WriteCommitParams.model_validate(ai_action.arguments)
+            tool = contributor.AmendPRParams.model_validate(ai_action.arguments)
             print_system(tool)
             conversation.add_tool(
                 tool_id=ai_action.id, arguments=json.dumps(ai_action.arguments)

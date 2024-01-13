@@ -1,25 +1,21 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+from agents.coder import File
 from ai import llm
 from utils.state import Conversation
 
 
 class Action:
-    WRITE_COMMIT = "write_commit"
+    AMEND_PR = "amend_pr"
 
 
-class File(BaseModel):
-    path: str = Field(description="Path of the file")
-    content: str = Field(description="Content of the file. Add a new line at the end.")
-
-    def __str__(self) -> str:
-        return f"{self.path}\n```\n{self.content}\n```"
-
-
-class WriteCommitParams(BaseModel):
+class AmendPRParams(BaseModel):
     message: str = Field(description="Commit message")
+    description: Optional[str] = Field(
+        None, description="New PR description, if it needs to change"
+    )
     files: List[File] = Field(description="New/edited files in the PR")
     test_files: List[File] = Field(
         description="New/edited files for the tests in the PR"
@@ -29,24 +25,22 @@ class WriteCommitParams(BaseModel):
     )
 
     def __str__(self) -> str:
+        header = f"{self.message}\n"
+        if self.description:
+            header += f"{self.description}\n"
         new_files = "\n\n".join(str(f) for f in self.files)
         test_files = "\n\n".join(str(f) for f in self.test_files)
         deleted_files = "\n".join(self.deleted_files)
-        return (
-            f"{self.message}\n"
-            f"{new_files}\n\n"
-            f"{test_files}\n\n"
-            f"{deleted_files}\n\n"
-        )
+        return f"{header}\n{new_files}\n\n{test_files}\n\n{deleted_files}\n\n"
 
 
 TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": Action.WRITE_COMMIT,
-            "description": "Writes a commit to be pushed to the Pull Request",
-            "parameters": WriteCommitParams.schema(),
+            "name": Action.AMEND_PR,
+            "description": "Amend the Pull Request with a new commit",
+            "parameters": AmendPRParams.schema(),
         },
     },
 ]
@@ -56,10 +50,7 @@ PROMPT = """Pull Request 6 was created successfully.
 
 ### New Instructions
 
-1. Improve upon the PR.
-2. Use the best software engineering practices.
-3. Pay attention to every comment and address it.
-4. When ready, make the change. No need to ask for my confirmation."""
+You can directly amend the previous PR or reply to comments."""
 
 
 def next_action(
