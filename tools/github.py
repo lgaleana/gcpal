@@ -2,7 +2,7 @@ import base64
 import os
 import requests
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Optional
 
 
@@ -39,9 +39,11 @@ class Commit(BaseModel):
 
 
 class GithubComment(BaseModel):
+    id: int
     author: str
     body: str
     diff_hunk: str
+    node_id: str
 
 
 def get_repo_files() -> List[Optional[GithubFile]]:
@@ -121,7 +123,44 @@ def get_comments_since(pr_number: int, username: str) -> List[GithubComment]:
     comments = comments[last_user_comment_index + 1 :]
     return [
         GithubComment(
-            author=c["user"]["login"], body=c["body"], diff_hunk=c["diff_hunk"]
+            id=c["id"],
+            author=c["user"]["login"],
+            body=c["body"],
+            diff_hunk=c["diff_hunk"],
+            node_id=c["node_id"],
         )
         for c in comments
     ]
+
+
+def reply_to_comment(pr_number: int, comment_id: int, reply: str) -> None:
+    response = requests.post(
+        f"https://api.github.com/repos/lgaleana/email-sequences/issues/{pr_number}/comments",
+        json={"body": reply, "in_reply_to": comment_id},
+        headers=HEADERS,
+    )
+    response.raise_for_status()
+
+
+def reply_to_comment_gql(node_id: str, reply: str) -> None:
+    query = """
+    mutation {
+      addPullRequestReviewComment(input: {
+        pullRequestReviewId: "%s",
+        body: "%s"
+      }) {
+        comment {
+          body
+        }
+      }
+    }
+    """ % (
+        node_id,
+        reply,
+    )
+
+    response = requests.post(
+        "https://api.github.com/graphql", json={"query": query}, headers=HEADERS
+    )
+    response.raise_for_status()
+    print(response.text)
