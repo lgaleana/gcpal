@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from ai_tasks import chat
-from coder_main import run as run_coder
-from utils.docker import commands as docker
+from agents import devops
+from workflows.coder import run as run_coder
+from tools.docker import commands as docker
 from utils.io import user_input, print_system
 from utils.state import Command, CommandStatus, Conversation, state, State
 
@@ -20,15 +20,15 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
     initial_commands = docker.adhoc()
 
     while True:
-        ai_action = chat.next_action(conversation, initial_commands)
+        ai_action = devops.next_action(conversation, initial_commands)
 
-        if ai_action.name == chat.Action.CHAT and isinstance(ai_action.payload, str):
+        if ai_action.name == devops.Action.CHAT and isinstance(ai_action.payload, str):
             conversation.add_assistant(ai_action.payload)
             user_message = user_input()
             conversation.add_user(user_message)
         else:
-            assert isinstance(ai_action.payload, chat.Tool)
-            if isinstance(ai_action.payload.arguments, chat.ExecuteShellParams):
+            assert isinstance(ai_action.payload, devops.Tool)
+            if isinstance(ai_action.payload.arguments, devops.ExecuteShellParams):
                 conversation.add_tool(
                     tool_id=ai_action.payload.id,
                     arguments=ai_action.payload.arguments.model_dump_json(),

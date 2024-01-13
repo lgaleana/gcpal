@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from ai_tasks import pm as chat
-from utils import jira
+from agents import pm as chat
+from tools import jira
 from utils.io import user_input, print_system
 from utils.state import Conversation
 

@@ -2,7 +2,7 @@ import os
 import time
 from typing import List
 
-from ai_tasks.coder import File
+from agents.coder import File
 
 
 DIFFS_DIR = "gcpal-docker/diffs"

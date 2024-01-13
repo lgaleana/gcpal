@@ -2,8 +2,8 @@ import os
 import subprocess
 from typing import List
 
-from ai_tasks.coder import File
-from utils.docker import commands
+from agents.coder import File
+from tools.docker import commands
 
 
 DOCKER_NAME = os.environ["DOCKER_NAME"]

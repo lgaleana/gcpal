@@ -3,7 +3,7 @@ from typing import Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 from ai import llm
-from utils.jira import IssueType
+from tools.jira import IssueType
 from utils.state import Conversation
 
 

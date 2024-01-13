@@ -7,11 +7,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from ai_tasks import coder
-from utils import github
-from utils import jira
-from utils.files import create_files, DIFFS_DIR
-from utils.docker import commands as docker, container
+from agents import coder
+from tools import github
+from tools import jira
+from tools.files import create_files, DIFFS_DIR
+from tools.docker import commands as docker, container
 from utils.io import user_input, print_system
 from utils.state import CommandStatus, Conversation, State
 

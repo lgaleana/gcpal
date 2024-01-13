@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from ai_tasks import pr_coder
-from coder_main import AGENT as CODER_AGENT
-from utils import github
-from utils.docker import commands as docker
+from agents import contributor
+from workflows.coder import AGENT as CODER_AGENT
+from tools import github
+from tools.docker import commands as docker
 from utils.io import user_input, print_system
 from utils.state import Conversation, State
 
@@ -30,7 +30,7 @@ def run(state: State) -> None:
     )
 
     while True:
-        ai_action = pr_coder.next_action(conversation_context, conversation)
+        ai_action = contributor.next_action(conversation_context, conversation)
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
             user_message = user_input()
@@ -38,7 +38,7 @@ def run(state: State) -> None:
                 f"{comment.author}: {user_message}\n```{comment.diff_hunk}```"
             )
         else:
-            tool = pr_coder.WriteCommitParams.model_validate(ai_action.arguments)
+            tool = contributor.WriteCommitParams.model_validate(ai_action.arguments)
             print_system(tool)
             conversation.add_tool(
                 tool_id=ai_action.id, arguments=json.dumps(ai_action.arguments)
