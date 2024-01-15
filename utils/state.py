@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from pydantic import BaseModel
 from typing import Any, Dict, List, Literal, Optional
 
@@ -36,6 +37,17 @@ class Conversation(List[Dict[str, Any]]):
 
     def add_tool_response(self, tool_id: str, message: str) -> None:
         self.append({"role": "tool", "content": message, "tool_call_id": tool_id})
+
+    def copy(self) -> "Conversation":
+        return deepcopy(self)
+
+    def remove_last_failed_tool(self, fail_msg: str) -> "Conversation":
+        new_conversation = self.copy()
+        for i in range(len(new_conversation) - 1, 0, -1):
+            if new_conversation[i]["content"] == fail_msg:
+                del new_conversation[i - 2 : i + 1]
+                break
+        return new_conversation
 
     def empty(self) -> bool:
         return len(self) == 0

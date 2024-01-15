@@ -5,7 +5,7 @@ from agents.coder import WritePRParams
 from agents.contributor import AmendPRParams
 from tools import github
 from tools.files import create_files, DIFFS_DIR
-from tools.docker import commands as docker, container
+from tools.docker import commands, container
 from utils.io import print_system
 from utils.state import CommandStatus
 
@@ -19,7 +19,9 @@ class TestsError(PRError):
 
 
 def create_or_edit_pr(
-    tool: Union[WritePRParams, AmendPRParams], state_name: str
+    tool: Union[WritePRParams, AmendPRParams],
+    state_name: str,
+    docker: commands.DockerRunner,
 ) -> str:
     # Create files locally first
     print_system("Copying files to container...")
@@ -41,6 +43,7 @@ def create_or_edit_pr(
         files=tool.files + tool.test_files,
         root=root_path,
         container_path=f"/home/app",
+        docker=docker,
     )
     docker.execute_one("git status")
 
@@ -56,9 +59,7 @@ def create_or_edit_pr(
         or "= ERRORS =" in pytest.output_str()
         or "= FAILURES =" in pytest.output_str()
     ):
-        raise TestsError(
-            f"Error running :: `{pytest.command}`. Error :: {pytest.output_str()}"
-        )
+        raise TestsError(f"The tests failed :: {pytest.output_str()}")
 
     # 5. Create commit and push
     commit_commands = docker.execute(
@@ -86,7 +87,7 @@ def create_or_edit_pr(
         return tool.pr_url
 
 
-def rollback(branch: str) -> None:
+def rollback(branch: str, docker: commands.DockerRunner) -> None:
     print_system()
     print_system("!!!!! Rolling back...")
     docker.execute(
@@ -106,5 +107,7 @@ def rollback(branch: str) -> None:
     print_system("Rollback successful...")
 
 
-def create_pr(tool: WritePRParams, state_name: str) -> str:
-    return create_or_edit_pr(tool, state_name)
+def create_pr(
+    tool: WritePRParams, state_name: str, docker: commands.DockerRunner
+) -> str:
+    return create_or_edit_pr(tool, state_name, docker)

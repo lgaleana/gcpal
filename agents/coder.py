@@ -76,9 +76,9 @@ FastAPI application that lets users schedule email sequences to be delivered in 
 5. **Email Service**: This will be responsible for the actual sending of emails. The job scheduler will interact with this service to send out the emails.
 This architecture separates concerns into distinct components, each responsible for a specific part of the application. This makes the application easier to develop, test, and maintain. It also allows for scalability, as each component can be scaled independently based on its specific load and performance requirements.
 
-### Project tickets
+### The ticket assigned to you
 
-{jira}
+{ticket}
 
 ### Codebase
 
@@ -86,27 +86,18 @@ This architecture separates concerns into distinct components, each responsible 
 {codebase}
 ```
 
-### Last 10 commits
-
-```
-{git}
-```
-
-### The ticket assigned to you
-
-{ticket}
-
 ### Requirements
 
 1. Follow the best software engineering practices.
-2. Consider the existing code.
+2. Consider the existing codebase.
 3. Follow the best practices to organize your file structure.
 4. Remember to add a new line at the end of each file.
-5. Include unit tests for every change you make. Use mocked data.
+5. Use absolute imports.
+6. Include unit tests for every change you make. Use mocked data.
 
 ### Instructions
 
-1. Discuss the implementation with me.
+1. Discuss the implementation with me. Omit code.
 2. Only once I agree, create the PR.
 """
 
@@ -114,24 +105,22 @@ This architecture separates concerns into distinct components, each responsible 
 def next_action(
     ticket: Issue,
     conversation: Conversation,
-    all_tickets: List[Issue],
     repo_files: List[Optional[GithubFile]],
-    commits: List[Commit],
 ):
+    import json
+
+    print_system(json.dumps(conversation, indent=2))
     next = llm.stream_next(
         [
             {
                 "role": "user",
                 "content": PROMPT.format(
                     ticket=ticket,
-                    jira="\n".join(str(t) for t in all_tickets),
                     codebase="\n".join(str(f) for f in repo_files),
-                    git="\n".join(str(c) for c in commits),
                 ),
             }
         ]
         + conversation,
         tools=TOOLS,
     )
-    print_system("Done")
     return next

@@ -1,15 +1,16 @@
 import argparse
 import json
 import time
+import traceback
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from agents import contributor
-from workflows.write_pr import AGENT as CODER_AGENT
+from workflows.write_pr import AGENT as CODER_AGENT, TOOL_FAIL_MSG
 from tools import github
-from tools.docker import commands as docker
+from tools.docker.commands import DockerRunner
 from utils.io import user_input, print_system
 from utils.state import Conversation, State
 from workflows.actions.coder_actions import TestsError
@@ -20,8 +21,14 @@ AGENT = "contributor"
 
 
 def run(context_state: State, state: State, pr_number: int, git_branch: str) -> None:
-    docker.startup()
-    docker.pr_coder()
+    docker = DockerRunner(
+        startup_commands=[
+            "cd /home/app",
+            "pwd",
+            "source venv/bin/activate",
+            f"git checkout {git_branch}",
+        ]
+    )
 
     conversation = state.conversation
 
@@ -57,23 +64,25 @@ def run(context_state: State, state: State, pr_number: int, git_branch: str) -> 
             return
 
         try:
-            pr_url = edit_pr(tool, state.name)
+            pr_url = edit_pr(tool, state.name, docker)
             conversation.add_tool_response(
                 tool_id=ai_action.id,
                 message=(f"PR amended successfully :: {pr_url}"),
             )
             print_system(pr_url)
         except Exception as e:
+            print_system()
             print_system(f"!!!!! ERROR: {e}")
-            rollback()
+            traceback.print_tb(e.__traceback__)
+            print_system()
+            rollback(docker)
+            conversation = conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
             conversation.add_tool_response(
                 tool_id=ai_action.id,
                 message=str(e),
             )
             if isinstance(e, TestsError):
-                conversation.add_user(
-                    "Your tests had errors. Fix them and re-create the PR. Go."
-                )
+                conversation.add_user(TOOL_FAIL_MSG)
 
     state.persist()
 
