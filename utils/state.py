@@ -1,7 +1,9 @@
 import json
 from copy import deepcopy
 from pydantic import BaseModel
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal
+
+from ai.llm import RawTool
 
 
 class Conversation(List[Dict[str, Any]]):
@@ -17,17 +19,17 @@ class Conversation(List[Dict[str, Any]]):
     def add_user(self, message: str) -> None:
         self.append({"role": "user", "content": message})
 
-    def add_tool(self, tool_id: str, arguments: Optional[str]) -> None:
+    def add_tool(self, tool: RawTool) -> None:
         self.append(
             {
                 "role": "assistant",
                 "tool_calls": [
                     {
-                        "id": tool_id,
+                        "id": tool.id,
                         "type": "function",
                         "function": {
-                            "name": "execute_shell",
-                            "arguments": arguments,
+                            "name": tool.name,
+                            "arguments": tool.arguments,
                         },
                     }
                 ],
@@ -41,13 +43,11 @@ class Conversation(List[Dict[str, Any]]):
     def copy(self) -> "Conversation":
         return deepcopy(self)
 
-    def remove_last_failed_tool(self, fail_msg: str) -> "Conversation":
-        new_conversation = self.copy()
-        for i in range(len(new_conversation) - 1, 0, -1):
-            if new_conversation[i]["content"] == fail_msg:
-                del new_conversation[i - 2 : i + 1]
+    def remove_last_failed_tool(self, fail_msg: str) -> None:
+        for i in range(len(self) - 1, 0, -1):
+            if self[i]["content"] == fail_msg:
+                del self[i - 2 : i + 1]
                 break
-        return new_conversation
 
     def empty(self) -> bool:
         return len(self) == 0

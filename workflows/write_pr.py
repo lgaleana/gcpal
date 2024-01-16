@@ -49,9 +49,7 @@ def run(state: State, ticket_key: str) -> None:
         else:
             tool = coder.WritePRParams.model_validate(ai_action.arguments)
             print_system(tool)
-            conversation.add_tool(
-                tool_id=ai_action.id, arguments=json.dumps(ai_action.arguments)
-            )
+            conversation.add_tool(tool=ai_action)
 
             user_message = user_input()
             if user_message != "y":
@@ -76,7 +74,7 @@ def run(state: State, ticket_key: str) -> None:
                 print_system()
 
                 rollback(tool.git_branch, docker)
-                conversation = conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
+                conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
 
                 if isinstance(e, TestsError):
                     conversation.add_tool_response(

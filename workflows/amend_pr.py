@@ -75,8 +75,10 @@ def run(context_state: State, state: State, pr_number: int, git_branch: str) -> 
             print_system(f"!!!!! ERROR: {e}")
             traceback.print_tb(e.__traceback__)
             print_system()
+
             rollback(docker)
-            conversation = conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
+            conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
+
             conversation.add_tool_response(
                 tool_id=ai_action.id,
                 message=str(e),

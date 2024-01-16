@@ -8,20 +8,19 @@ from utils.state import Conversation
 
 
 def sumamrize_test_failure(pr: WritePRParams, failure_msg: str) -> str:
-    PROMPT = """You are a helpful AI assistant that helps understand why the tests in a Pull Request have failed.
+    PROMPT = """I wrote the following Pull Request with unit tests, but the tests failed.
+    Help me understand the error and fix the tests.
 
     Pull request:
-    ```
     {pr}
-    ```
 
     Test failure message:
     ```
     {failure_msg}
     ```
 
-    In one sentence, explain why the tests failed.
-    Next, provide the code changes to fix them. Tests must use mocked data.
+    In one sentence, explain the error.
+    Then, tell me how to fix the tests. Provide code changes. Tests must use mocked data.
 
     Error: ...
     Fix: ..."""
