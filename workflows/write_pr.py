@@ -88,6 +88,7 @@ def run(state: State, ticket_key: str) -> None:
                         message=str(e),
                     )
 
+        conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
         state.persist()
 
 

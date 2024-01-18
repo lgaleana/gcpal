@@ -107,6 +107,7 @@ def run(context_state: State, state: State) -> None:
             )
             assert not isinstance(ai_action, str)
 
+    conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
     acted_comments.append(comment.id)
     state.persist()
     print_system(state.name)
