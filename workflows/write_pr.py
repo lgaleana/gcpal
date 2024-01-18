@@ -33,8 +33,8 @@ def run(state: State, ticket_key: str) -> None:
             "cd /home/app",
             "pwd",
             "source venv/bin/activate",
-            "git pull origin main --rebase",
             "git checkout main",
+            "git pull origin main --rebase",
         ]
     )
 
@@ -67,6 +67,7 @@ def run(state: State, ticket_key: str) -> None:
                     message=(f"PR created successfully :: {pr_url}"),
                 )
                 print_system(pr_url)
+                break
             except Exception as e:
                 print_system()
                 print_system(f"!!!!! ERROR\n: {e}")

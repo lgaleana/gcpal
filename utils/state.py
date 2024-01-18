@@ -33,7 +33,6 @@ class Conversation(List[Dict[str, Any]]):
                         },
                     }
                 ],
-                "content": None,
             }
         )
 

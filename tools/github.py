@@ -43,10 +43,23 @@ class GithubComment(BaseModel):
     author: str
     body: str
     created_at: datetime
-    diff_hunk: Optional[str] = None
+    html_url: str
+    node_id: str
 
     def __str__(self) -> str:
-        return f"{self.author}:\n  {self.body}"
+        return f"@{self.author}:\n  {self.body}"
+
+
+class ReviewComment(GithubComment):
+    line: int
+    diff_hunk: str
+
+    def __str__(self) -> str:
+        return (
+            f"@{self.author}:\n"
+            f"```\n{self.diff_hunk}\n```\n\n"
+            f"line {self.line}: {self.body}"
+        )
 
 
 def get_repo_files() -> List[Optional[GithubFile]]:
@@ -105,7 +118,9 @@ def create_pr(
         json={"title": title, "body": body, "head": head, "base": base},
     )
     response.raise_for_status()
-    return response.json()["html_url"]
+    response = response.json()
+    print(response)
+    return response["html_url"]
 
 
 def get_review_comments(pr_number: int) -> List[GithubComment]:
@@ -114,15 +129,19 @@ def get_review_comments(pr_number: int) -> List[GithubComment]:
         headers=HEADERS,
     )
     response.raise_for_status()
+    response = response.json()
     return [
-        GithubComment(
+        ReviewComment(
             id=c["id"],
             author=c["user"]["login"],
             body=c["body"],
             created_at=datetime.strptime(c["created_at"], "%Y-%m-%dT%H:%M:%SZ"),
+            html_url=c["html_url"],
+            line=c["line"],
             diff_hunk=c["diff_hunk"],
+            node_id=c["node_id"],
         )
-        for c in response.json()
+        for c in response
     ]
 
 
@@ -132,14 +151,17 @@ def get_issue_comments(pr_number: int) -> List[GithubComment]:
         headers=HEADERS,
     )
     response.raise_for_status()
+    response = response.json()
     return [
         GithubComment(
             id=c["id"],
             author=c["user"]["login"],
             body=c["body"],
             created_at=datetime.strptime(c["created_at"], "%Y-%m-%dT%H:%M:%SZ"),
+            html_url=c["html_url"],
+            node_id=c["node_id"],
         )
-        for c in response.json()
+        for c in response
     ]
 
 
@@ -158,35 +180,21 @@ def get_comments_since(pr_number: int, username: str) -> List[GithubComment]:
     return all_comments[last_user_comment_index + 1 :]
 
 
-def reply_to_comment(pr_number: int, comment_id: int, reply: str) -> None:
+def reply_to_comment(pr_number: int, comment_id: int, reply: str) -> ReviewComment:
     response = requests.post(
-        f"https://api.github.com/repos/lgaleana/email-sequences/issues/{pr_number}/comments",
-        json={"body": reply, "in_reply_to": comment_id},
+        f"https://api.github.com/repos/lgaleana/email-sequences/pulls/{pr_number}/comments/{comment_id}/replies",
+        json={"body": reply},
         headers=HEADERS,
     )
     response.raise_for_status()
-    print(response.json())
-
-
-def reply_to_comment_gql(node_id: str, reply: str) -> None:
-    query = """
-    mutation {
-      addPullRequestReviewComment(input: {
-        pullRequestReviewId: "%s",
-        body: "%s"
-      }) {
-        comment {
-          body
-        }
-      }
-    }
-    """ % (
-        node_id,
-        reply,
+    c = response.json()
+    return ReviewComment(
+        id=c["id"],
+        author=c["user"]["login"],
+        body=c["body"],
+        created_at=datetime.strptime(c["created_at"], "%Y-%m-%dT%H:%M:%SZ"),
+        html_url=c["html_url"],
+        line=c["line"],
+        diff_hunk=c["diff_hunk"],
+        node_id=c["node_id"],
     )
-
-    response = requests.post(
-        "https://api.github.com/graphql", json={"query": query}, headers=HEADERS
-    )
-    response.raise_for_status()
-    print(response.text)

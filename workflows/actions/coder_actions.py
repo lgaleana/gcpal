@@ -92,16 +92,14 @@ def rollback(branch: str, docker: commands.DockerRunner) -> None:
     print_system("!!!!! Rolling back...")
     docker.execute(
         [
-            "cd /home/app",
-            "pwd",
-            "source venv/bin/activate",
+            f"git checkout {branch}",
             "python3 -m pip uninstall -r requirements.txt -y",  # roll back packages
-            "python3 -m pip install -r requirements.txt",  # roll back packages
             "git restore .",  # roll back files
             "git clean -fd",  # roll back files
             "git checkout main",  # roll back branch
             f"git branch -D {branch}",  # roll back branch
             f"git push origin --delete {branch}",  # rollb back github branch
+            "python3 -m pip install -r requirements.txt",  # roll back packages
         ]
     )
     print_system("Rollback successful...")

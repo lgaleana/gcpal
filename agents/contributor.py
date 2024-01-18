@@ -51,20 +51,22 @@ TOOLS = [
 ]
 
 
-PROMPT = """Pull Request 6 was created successfully.
+PROMPT = """Pull Request {pr} was created successfully.
 
-### New Instructions
+### New instructions
 
-Your github username is lgaleana-llm.
-You can directly amend the previous PR or reply to comments."""
+Amend the PR by writing new code. No need to wait for confirmation."""
 
 
 def next_action(
     conversation_context: Conversation,
     conversation: Conversation,
+    pr_number: int,
 ):
     next = llm.stream_next(
-        conversation_context + [{"role": "user", "content": PROMPT}] + conversation,
+        conversation_context
+        + [{"role": "user", "content": PROMPT.format(pr=pr_number)}]
+        + conversation,
         tools=TOOLS,
     )
     return next
