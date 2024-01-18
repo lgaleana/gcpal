@@ -22,7 +22,7 @@ def create_or_edit_pr(
     tool: Union[WritePRParams, AmendPRParams],
     state_name: str,
     docker: commands.DockerRunner,
-) -> str:
+) -> github.PullRequest:
     # Create files locally first
     print_system("Copying files to container...")
     root_path = f"{DIFFS_DIR}/{state_name}/{time.time()}"
@@ -30,9 +30,11 @@ def create_or_edit_pr(
 
     # 1. Move to branch
     if isinstance(tool, WritePRParams):
-        branch = docker.execute_one(f"git checkout -b {tool.git_branch}")
+        git_branch = tool.git_branch
+        branch = docker.execute_one(f"git checkout -b {git_branch}")
     else:
-        branch = docker.execute_one(f"git checkout {tool.git_branch}")
+        git_branch = tool.original.head
+        branch = docker.execute_one(f"git checkout {git_branch}")
     if branch.status == CommandStatus.ERROR or "fatal:" in branch.output_str():
         raise PRError(
             f"Error running :: `{branch.command}`. Error :: {branch.output_str()}"
@@ -66,7 +68,7 @@ def create_or_edit_pr(
         [
             "git add .",
             f'git commit -m "{tool.title}"',
-            f"git push origin {tool.git_branch}",
+            f"git push origin {git_branch}",
         ]
     )
     for c in commit_commands:
@@ -75,16 +77,18 @@ def create_or_edit_pr(
 
     if isinstance(tool, WritePRParams):
         # 6. Create PR
-        pr_url = github.create_pr(
+        pr = github.create_pr(
             head=tool.git_branch,
             base="main",
             title=tool.title,
             description=tool.description,
             test_plan="pytest",
         )
-        return pr_url
     else:
-        return tool.pr_url
+        pr = tool.original
+
+    pr.commits.append(docker.execute_one("git rev-parse HEAD").output_str())
+    return pr
 
 
 def rollback(branch: str, docker: commands.DockerRunner) -> None:
@@ -107,5 +111,5 @@ def rollback(branch: str, docker: commands.DockerRunner) -> None:
 
 def create_pr(
     tool: WritePRParams, state_name: str, docker: commands.DockerRunner
-) -> str:
+) -> github.PullRequest:
     return create_or_edit_pr(tool, state_name, docker)

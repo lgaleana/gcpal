@@ -3,7 +3,7 @@ import os
 import requests
 from datetime import datetime
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union
 
 
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
@@ -36,6 +36,17 @@ class Commit(BaseModel):
             f"Date:   {date}\n\n"
             f"    {self.message}"
         )
+
+
+class PullRequest(BaseModel):
+    number: int
+    title: str
+    description: str
+    test_plan: str
+    head: str
+    base: str
+    html_url: str
+    commits: List[str] = []
 
 
 class GithubComment(BaseModel):
@@ -110,7 +121,7 @@ def get_last_commits(n: int):
 
 def create_pr(
     head: str, base: str, title: str, description: str, test_plan: str
-) -> str:
+) -> PullRequest:
     body = f"{description}\n\n### Test Plan\n\n{test_plan}"
     response = requests.post(
         "https://api.github.com/repos/lgaleana/email-sequences/pulls",
@@ -120,7 +131,16 @@ def create_pr(
     response.raise_for_status()
     response = response.json()
     print(response)
-    return response["html_url"]
+    return PullRequest(
+        number=response["number"],
+        title=title,
+        description=description,
+        test_plan=test_plan,
+        head=head,
+        base=base,
+        html_url=response["html_url"],
+        commits=[response["head"]["sha"]],
+    )
 
 
 def get_review_comments(pr_number: int) -> List[GithubComment]:
@@ -137,7 +157,7 @@ def get_review_comments(pr_number: int) -> List[GithubComment]:
             body=c["body"],
             created_at=datetime.strptime(c["created_at"], "%Y-%m-%dT%H:%M:%SZ"),
             html_url=c["html_url"],
-            line=c["line"],
+            line=c["line"] or c["original_line"],
             diff_hunk=c["diff_hunk"],
             node_id=c["node_id"],
         )
@@ -165,19 +185,17 @@ def get_issue_comments(pr_number: int) -> List[GithubComment]:
     ]
 
 
-def get_comments_since(pr_number: int, username: str) -> List[GithubComment]:
+def get_comments(
+    pr_number: int, username: str, skip_ids: List[int]
+) -> List[Union[ReviewComment, GithubComment]]:
     review_comments = get_review_comments(pr_number)
     issue_comments = get_issue_comments(pr_number)
-    all_comments = sorted(review_comments + issue_comments, key=lambda c: c.created_at)
 
-    # Find the last comment by the user
-    last_user_comment_index = -1
-    for i, comment in enumerate(all_comments):
-        if comment.author == username:
-            last_user_comment_index = i
-
-    # All comments after the user's last comment
-    return all_comments[last_user_comment_index + 1 :]
+    all_comments = []
+    for comment in sorted(review_comments + issue_comments, key=lambda c: c.created_at):
+        if comment.author != username and comment.id not in skip_ids:
+            all_comments.append(comment)
+    return all_comments
 
 
 def reply_to_comment(pr_number: int, comment_id: int, reply: str) -> ReviewComment:

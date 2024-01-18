@@ -1,9 +1,10 @@
 import json
 from copy import deepcopy
 from pydantic import BaseModel
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List, Literal, Optional
 
 from ai.llm import RawTool
+from tools.github import PullRequest
 
 
 class Conversation(List[Dict[str, Any]]):
@@ -29,10 +30,11 @@ class Conversation(List[Dict[str, Any]]):
                         "type": "function",
                         "function": {
                             "name": tool.name,
-                            "arguments": tool.arguments,
+                            "arguments": json.dumps(tool.arguments, indent=2),
                         },
                     }
                 ],
+                "content": None,
             }
         )
 
@@ -78,6 +80,8 @@ class State(BaseModel):
     name: str
     agent: str
     conversation: Conversation = Conversation()
+    pr: Optional[PullRequest]
+    acted_comments: List = []
 
     class Config:
         arbitrary_types_allowed = True
@@ -91,6 +95,8 @@ class State(BaseModel):
             name=name,
             agent=agent,
             conversation=Conversation(payload["conversation"]),
+            pr=payload.get("pr"),
+            acted_comments=payload.get("acted_comments", []),
         )
 
     def persist(self) -> None:

@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from agents.coder import File
 from ai import llm
+from tools.github import PullRequest
 from utils.state import Conversation
 
 
@@ -35,8 +36,7 @@ class _AmendPRParams(BaseModel):
 
 
 class AmendPRParams(_AmendPRParams):
-    git_branch: str
-    pr_url: str
+    original: PullRequest
 
 
 TOOLS = [

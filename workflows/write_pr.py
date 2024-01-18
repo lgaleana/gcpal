@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import time
 import traceback
@@ -61,12 +60,12 @@ def run(state: State, ticket_key: str) -> None:
                 continue
 
             try:
-                pr_url = create_pr(tool, state.name, docker)
+                state.pr = create_pr(tool, state.name, docker)
                 conversation.add_tool_response(
                     tool_id=ai_action.id,
-                    message=(f"PR created successfully :: {pr_url}"),
+                    message=(f"PR created successfully :: {state.pr}"),
                 )
-                print_system(pr_url)
+                print_system(state.pr)
                 break
             except Exception as e:
                 print_system()
@@ -109,6 +108,6 @@ if __name__ == "__main__":
     elif args.name:
         state = State.load(args.name, AGENT)
     else:
-        state = State(name=str(time.time()), agent=AGENT, conversation=Conversation())
+        state = State(name=str(time.time()), agent=AGENT, conversation=Conversation(), pr=None)
 
     run(state, "SBX-51")

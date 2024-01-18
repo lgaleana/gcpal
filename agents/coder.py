@@ -3,7 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from ai import llm
-from tools.github import GithubFile, Commit
+from tools.github import GithubFile
 from tools.jira import Issue
 from utils.io import print_system
 from utils.state import Conversation
