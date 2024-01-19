@@ -107,9 +107,6 @@ def next_action(
     conversation: Conversation,
     repo_files: List[Optional[GithubFile]],
 ):
-    import json
-
-    print_system(json.dumps(conversation, indent=2))
     next = llm.stream_next(
         [
             {

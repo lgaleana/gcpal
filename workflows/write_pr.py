@@ -50,15 +50,6 @@ def run(state: State, ticket_key: str) -> None:
             print_system(tool)
             conversation.add_tool(tool=ai_action)
 
-            user_message = user_input()
-            if user_message != "y":
-                conversation.add_tool_response(
-                    tool_id=ai_action.id,
-                    message=f"Didn't execute. Reason: user feedback :: {user_message}",
-                )
-                state.persist()
-                continue
-
             try:
                 state.pr = create_pr(tool, state.name, docker)
                 conversation.add_tool_response(
@@ -87,28 +78,24 @@ def run(state: State, ticket_key: str) -> None:
                         tool_id=ai_action.id,
                         message=str(e),
                     )
-
-        conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
         state.persist()
+
+    conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
+    state.persist()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--last", action="store_true")
-    group.add_argument("name", nargs="?")
+    parser.add_argument("ticket", type=str)
+    parser.add_argument("--name", type=str, default=None)
     args = parser.parse_args()
 
     states_dir = f"db/{AGENT}/"
-    if args.last:
-        states = os.listdir("db/coder/")
-        states = [f for f in states if os.path.isfile(os.path.join(states_dir, f))]
-        states.sort()
-        name = states[-1].replace(".json", "")
-        state = State.load(name, AGENT)
-    elif args.name:
+    if args.name:
         state = State.load(args.name, AGENT)
     else:
-        state = State(name=str(time.time()), agent=AGENT, conversation=Conversation(), pr=None)
+        state = State(
+            name=str(time.time()), agent=AGENT, conversation=Conversation(), pr=None
+        )
 
-    run(state, "SBX-51")
+    run(state, args.ticket)

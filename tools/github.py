@@ -130,7 +130,6 @@ def create_pr(
     )
     response.raise_for_status()
     response = response.json()
-    print(response)
     return PullRequest(
         number=response["number"],
         title=title,

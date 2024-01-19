@@ -68,11 +68,6 @@ def run(context_state: State, state: State) -> None:
         print_system(tool)
         conversation.add_tool(tool=ai_action)
 
-        user_message = user_input()
-        if user_message != "y":
-            print_system("PR not amended.")
-            return
-
         try:
             state.pr = edit_pr(tool, state.name, docker)
             conversation.add_tool_response(
@@ -106,6 +101,7 @@ def run(context_state: State, state: State) -> None:
                 context_state.conversation, conversation, pr.number
             )
             assert not isinstance(ai_action, str)
+        state.persist()
 
     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
     acted_comments.append(comment.id)
