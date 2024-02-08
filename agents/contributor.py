@@ -17,9 +17,9 @@ class _AmendPRParams(BaseModel):
     description: Optional[str] = Field(
         None, description="New PR description, if it needs to change"
     )
-    files: List[File] = Field(description="New/edited files in the PR")
+    files: List[File] = Field([], description="New/edited files in the PR")
     test_files: List[File] = Field(
-        description="New/edited files for the tests in the PR"
+        [], description="New/edited files for the tests in the PR"
     )
     deleted_files: List[str] = Field(
         [], description="Paths of the files to delete, if any"
