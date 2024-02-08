@@ -8,7 +8,7 @@ from ai import llm
 def sumamrize_test_failure(
     pr: Union[WritePRParams, AmendPRParams], failure_msg: str
 ) -> str:
-    PROMPT = """I wrote the following Pull Request with unit tests, but the tests failed.
+    PROMPT = f"""I wrote the following Pull Request with unit tests, but the tests failed.
     Help me understand the error and fix the tests.
 
     Pull request:
@@ -29,9 +29,27 @@ def sumamrize_test_failure(
         [
             {
                 "role": "user",
-                "content": PROMPT.format(pr=pr, failure_msg=failure_msg),
+                "content": PROMPT,
             }
         ]
     )
     assert isinstance(summary, str)
     return summary
+
+
+def there_is_followup(text: str) -> bool:
+    PROMPT = f"""Does the following text explicitly say that there is a followup action?
+    {text}
+    
+    yes/no"""
+
+    yes_no = llm.stream_next(
+        [
+            {
+                "role": "user",
+                "content": PROMPT,
+            }
+        ]
+    )
+    assert isinstance(yes_no, str)
+    return "yes" in yes_no.lower()

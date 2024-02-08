@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from ai_tools import sumamrize_test_failure
+from ai_tools import sumamrize_test_failure, there_is_followup
 from agents import contributor
 from workflows.write_pr import AGENT as CODER_AGENT, TOOL_FAIL_MSG
 from tools import github
@@ -49,58 +49,60 @@ def run(context_state: State, state: State) -> None:
     print_system(comment)
     conversation.add_system(str(comment))
 
-    ai_action = contributor.next_action(
-        context_state.conversation, conversation, pr.number
-    )
-    if isinstance(ai_action, str):
-        conversation.add_assistant(ai_action)
-        user_message = user_input()
-        if user_message == "y":
-            github.reply_to_comment(pr.number, comment.id, reply=ai_action)
-            print_system("Comment saved ::")
-            conversation.add_system("Comment saved. Next comment...")
-        else:
-            print_system("Comment not saved.")
-        return
-
     while True:
-        tool = contributor.AmendPRParams(original=pr, **ai_action.arguments)
-        print_system(tool)
-        conversation.add_tool(tool=ai_action)
-
-        try:
-            state.pr = edit_pr(tool, state.name, docker)
-            conversation.add_tool_response(
-                tool_id=ai_action.id,
-                message=(f"PR amended successfully :: {state.pr}"),
-            )
-            print_system(state.pr)
-            break
-        except Exception as e:
-            print_system()
-            print_system(f"!!!!! ERROR\n: {e}")
-            traceback.print_tb(e.__traceback__)
-            print_system()
-
-            rollback(pr, docker)
-            conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
-
-            if isinstance(e, TestsError):
-                conversation.add_tool_response(
-                    tool_id=ai_action.id,
-                    message=sumamrize_test_failure(pr=tool, failure_msg=str(e)),
+        ai_action = contributor.next_action(
+            context_state.conversation, conversation, pr.number
+        )
+        if isinstance(ai_action, str):
+            conversation.add_assistant(ai_action)
+            user_message = user_input()
+            if user_message == "y":
+                assistant_comment = github.reply_to_comment(
+                    pr.number, comment.id, reply=ai_action
                 )
-                conversation.add_user(TOOL_FAIL_MSG)
+                print_system(f"Comment saved :: {assistant_comment}")
+                conversation.add_system("Comment saved.")
+
+                if not there_is_followup(assistant_comment.body):
+                    # There are cases where the agent replies, but
+                    # the next action should immediately be to amend the PR
+                    break
             else:
+                print_system("Comment not saved.")
+                break
+        else:
+            tool = contributor.AmendPRParams(original=pr, **ai_action.arguments)
+            print_system(tool)
+            conversation.add_tool(tool=ai_action)
+
+            try:
+                state.pr = edit_pr(tool, state.name, docker)
                 conversation.add_tool_response(
                     tool_id=ai_action.id,
-                    message=str(e),
+                    message=(f"PR amended successfully :: {state.pr}"),
                 )
+                print_system(state.pr)
+                break
+            except Exception as e:
+                print_system()
+                print_system(f"!!!!! ERROR\n: {e}")
+                traceback.print_tb(e.__traceback__)
+                print_system()
 
-            ai_action = contributor.next_action(
-                context_state.conversation, conversation, pr.number
-            )
-            assert not isinstance(ai_action, str)
+                rollback(pr, docker)
+                conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
+
+                if isinstance(e, TestsError):
+                    conversation.add_tool_response(
+                        tool_id=ai_action.id,
+                        message=sumamrize_test_failure(pr=tool, failure_msg=str(e)),
+                    )
+                    conversation.add_user(TOOL_FAIL_MSG)
+                else:
+                    conversation.add_tool_response(
+                        tool_id=ai_action.id,
+                        message=str(e),
+                    )
         state.persist()
 
     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
