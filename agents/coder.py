@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 from ai import llm
 from tools.github import GithubFile
 from tools.jira import Issue
-from utils.io import print_system
 from utils.state import Conversation
 
 
@@ -82,9 +81,7 @@ This architecture separates concerns into distinct components, each responsible 
 
 ### Codebase
 
-```
 {codebase}
-```
 
 ### Requirements
 

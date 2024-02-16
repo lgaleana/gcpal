@@ -3,7 +3,7 @@ import subprocess
 import threading
 from pydantic import BaseModel
 from queue import Empty, Queue
-from typing import ClassVar, List, Type, Union
+from typing import IO, ClassVar, List, Type, Union
 
 from utils.io import print_system
 from utils import state
@@ -90,8 +90,11 @@ class DockerRunner:
                         break
                     output = queue.get(timeout=TIMEOUT)
             except Empty:
+                print("--- TIMEOUT ---")  # For debugging
                 # Close connection
+                _signal_exit()
                 process.terminate()
+                process.kill()
                 stdout.join()
                 stderr.join()
 
@@ -119,11 +122,7 @@ class DockerRunner:
                 # Stop on error
                 break
 
-        # Signal to exit the threads
-        process.stdin.write(f"echo {StdOut.exit_signal}\n")
-        process.stdin.write(f"{StdErr.exit_signal}\n")
-        process.stdin.flush()
-
+        _signal_exit()
         stdout.join()
         stderr.join()
 
@@ -150,3 +149,11 @@ class DockerRunner:
 
 def _persist_command(command: Command) -> None:
     state.command_list.append(command)
+
+
+def _signal_exit() -> None:
+    global process
+    assert process.stdin
+    process.stdin.write(f"echo {StdOut.exit_signal}\n")
+    process.stdin.write(f"{StdErr.exit_signal}\n")
+    process.stdin.flush()

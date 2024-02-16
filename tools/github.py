@@ -73,9 +73,9 @@ class ReviewComment(GithubComment):
         )
 
 
-def get_repo_files() -> List[Optional[GithubFile]]:
+def get_repo_files(branch: str = "main") -> List[Optional[GithubFile]]:
     response = requests.get(
-        "https://api.github.com/repos/lgaleana/email-sequences/git/trees/main?recursive=1",
+        f"https://api.github.com/repos/lgaleana/email-sequences/git/trees/{branch}?recursive=1",
         headers=HEADERS,
     )
     response.raise_for_status()
