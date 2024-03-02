@@ -50,6 +50,9 @@ gh
 
 ### Codebase
 
+**Github repo**: https://github.com/lgaleana/email-sequences
+**Main branch**: `main`
+
 {codebase}
 
 ### Commands that you have ran so far
