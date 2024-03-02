@@ -1,36 +1,41 @@
-from typing import Any, Dict, List
+import argparse
+import time
+
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from agents import pm as chat
+from agents import pm
 from tools import jira
 from utils.io import user_input, print_system
-from utils.state import Conversation
+from utils.state import Conversation, State
 
 
-def run(_conversation: List[Dict[str, Any]] = []) -> None:
-    conversation = Conversation()
+AGENT = "pm"
+
+
+def run(state: State, project: str) -> None:
+    conversation = state.conversation
+
     while True:
-        ai_action = chat.next_action(conversation)
+        ai_action = pm.next_action(conversation)
 
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
             user_message = user_input()
             conversation.add_user(user_message)
         else:
-            assert isinstance(ai_action, chat.Tool)
-            conversation.add_tool(
-                tool_id=ai_action.id,
-                arguments=ai_action.arguments.model_dump_json(),
-            )
-            print_system(ai_action.arguments)
+            tool = pm.FileIssueParams.model_validate(ai_action.arguments)
+            print_system(tool)
+            conversation.add_tool(ai_action)
+
             issue = jira.create_issue(
-                ai_action.arguments.type_,
-                ai_action.arguments.title,
-                ai_action.arguments.description,
-                ai_action.arguments.parent_key,
+                tool.type_,
+                project,
+                tool.title,
+                tool.description,
+                tool.parent_key,
             )
             print_system(issue)
             conversation.add_tool_response(
@@ -38,6 +43,19 @@ def run(_conversation: List[Dict[str, Any]] = []) -> None:
                 message=f"Issue created successfuly. Key :: {issue['key']}.",
             )
 
+        state.persist()
+
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project", type=str)
+    parser.add_argument("--name", type=str, default=None)
+    args = parser.parse_args()
+
+    states_dir = f"db/{AGENT}/"
+    if args.name:
+        state = State.load(args.name, AGENT)
+    else:
+        state = State(name=str(time.time()), agent=AGENT, conversation=Conversation())
+
+    run(state, args.project)

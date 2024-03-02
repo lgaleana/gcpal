@@ -80,7 +80,7 @@ class State(BaseModel):
     name: str
     agent: str
     conversation: Conversation = Conversation()
-    pr: Optional[PullRequest]
+    pr: Optional[PullRequest] = None
     acted_comments: List = []
 
     class Config:

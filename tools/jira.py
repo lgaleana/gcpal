@@ -32,13 +32,14 @@ class Issue(BaseModel):
 
 def create_issue(
     issue_type: IssueType,
+    project_key: str,
     summary: str,
     description: str,
     parent_key: Optional[str] = None,
 ) -> Dict[str, Any]:
     issue_data = {
         "fields": {
-            "project": {"key": "SBX"},
+            "project": {"key": project_key},
             "summary": summary,
             "description": {
                 "type": "doc",

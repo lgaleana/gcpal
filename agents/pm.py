@@ -8,7 +8,6 @@ from utils.state import Conversation
 
 
 class Action:
-    CHAT = "chat"
     FILE_ISSUE = "file_issue"
 
 
@@ -31,15 +30,6 @@ TOOLS = [
 ]
 
 
-class Tool(llm.RawTool):
-    arguments: FileIssueParams
-
-
-class NextAction(BaseModel):
-    name: str
-    payload: Union[str, Tool]
-
-
 PROMPT = """You are a helpful AI assistant that helps software engineers plan and design their software projects.
 
 A software project is structured in the following way:
@@ -57,19 +47,18 @@ As you work with the user, you can do it in a top-down fashion. That is:
     - Brief description of the subtasks.
     - Agree on the subtasks.
 
+Instructions:
+- There is no need to specify tests. Tests shouls be considered part of each subtask.
+- There is no need to specify deployment. The project will be deployed continiously.
+- Add a subtask to set up the codebase.
+- Once everything has been agreed upon, give a detailed summary of the software architecture.
+
 Say hi."""
 
 
-def next_action(conversation: Conversation) -> Union[str, Tool]:
+def next_action(conversation: Conversation):
     next = llm.stream_next(
         [{"role": "system", "content": PROMPT}] + conversation,
         tools=TOOLS,
     )
-
-    if isinstance(next, str):
-        return next
-    return Tool(
-        id=next.id,
-        name=next.name,
-        arguments=FileIssueParams.parse_obj(next.arguments),
-    )
+    return next
