@@ -9,6 +9,7 @@ from utils.state import Conversation
 
 class Action:
     FILE_ISSUE = "file_issue"
+    EXIT = "exit"
 
 
 class FileIssueParams(BaseModel):
@@ -18,6 +19,10 @@ class FileIssueParams(BaseModel):
     parent_key: Optional[str] = Field(None, description="Parent of the issue")
 
 
+class Exit(BaseModel):
+    ...
+
+
 TOOLS = [
     {
         "type": "function",
@@ -25,6 +30,14 @@ TOOLS = [
             "name": Action.FILE_ISSUE,
             "description": "Executes shell commands in Ubuntu",
             "parameters": FileIssueParams.schema(),
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": Action.EXIT,
+            "description": "Finish the conversation once everything has been agreed upon.",
+            "parameters": Exit.schema(),
         },
     },
 ]
@@ -51,7 +64,7 @@ Instructions:
 - There is no need to specify tests. Tests shouls be considered part of each subtask.
 - There is no need to specify deployment. The project will be deployed continiously.
 - Add a subtask to set up the codebase.
-- Once everything has been agreed upon, give a detailed summary of the software architecture.
+- Once everything has been agreed upon, exit.
 
 Say hi."""
 

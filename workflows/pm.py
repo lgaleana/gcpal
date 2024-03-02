@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from agents import pm
+from ai_tools import summarize_architecture
 from tools import jira
 from utils.io import user_input, print_system
 from utils.state import Conversation, State
@@ -18,14 +19,15 @@ AGENT = "pm"
 def run(state: State, project: str) -> None:
     conversation = state.conversation
 
-    while True:
+    tool = None
+    while not isinstance(tool, pm.Exit):
         ai_action = pm.next_action(conversation)
 
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
             user_message = user_input()
             conversation.add_user(user_message)
-        else:
+        elif isinstance(ai_action, pm.FileIssueParams):
             tool = pm.FileIssueParams.model_validate(ai_action.arguments)
             print_system(tool)
             conversation.add_tool(ai_action)
@@ -42,6 +44,10 @@ def run(state: State, project: str) -> None:
                 tool_id=ai_action.id,
                 message=f"Issue created successfuly. Key :: {issue['key']}.",
             )
+        else:
+            tool = pm.Exit.model_validate(ai_action.arguments)
+            summary = summarize_architecture(conversation)
+            conversation.add_assistant(summary)
 
         state.persist()
 

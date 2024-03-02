@@ -3,6 +3,7 @@ from typing import Union
 from agents.coder import WritePRParams
 from agents.contributor import AmendPRParams
 from ai import llm
+from utils.state import Conversation
 
 
 def sumamrize_test_failure(
@@ -53,3 +54,19 @@ def there_is_followup(text: str) -> bool:
     )
     assert isinstance(yes_no, str)
     return "yes" in yes_no.lower()
+
+
+def summarize_architecture(conversation: Conversation) -> str:
+    PROMPT = f"""Provide a summary of the software architecture."""
+
+    summary = llm.stream_next(
+        conversation
+        + [
+            {
+                "role": "system",
+                "content": PROMPT,
+            }
+        ]
+    )
+    assert isinstance(summary, str)
+    return summary
