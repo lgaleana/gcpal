@@ -66,16 +66,17 @@ def create_issue(
     return response.json()
 
 
-def get_all_issues() -> List[Dict[str, Any]]:
-    jql_query = "project=SBX AND issuetype in ('Epic', 'Story', 'Subtask')"
+def get_all_issues(project_key: str) -> List[Dict[str, Any]]:
+    jql_query = f"project='IN' AND issuetype in ('Epic', 'Story', 'Subtask')"
     response = requests.get(
         f"{DOMAIN}/search?jql={jql_query}", headers=HEADERS, auth=AUTH
     )
+    response.raise_for_status()
     return response.json().get("issues", [])
 
 
-def get_grouped_issues() -> List[Issue]:
-    all_issues = get_all_issues()
+def get_grouped_issues(project_key: str) -> List[Issue]:
+    all_issues = get_all_issues(project_key)
 
     epics = {}
     stories = {}

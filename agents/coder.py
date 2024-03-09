@@ -64,16 +64,19 @@ You are working in the following project
 
 ### Project description
 
-FastAPI application that lets users schedule email sequences to be delivered in the future.
+FastAPI application that lets users manage an inventory.
 
 ### Architecture overview
 
-1. **Frontend (User Interface)**: This will be a single page application where users can create, view, edit, and delete email schedules and sequences. It will also display the status of scheduled emails and sequences. The frontend will communicate with the backend via API calls.
-2. **Backend (FastAPI)**: This will handle all the server-side logic of your application. It will have various API endpoints for handling requests related to email schedules and sequences. The backend will be responsible for validating requests, interacting with the database, and returning responses.
-3. **Database**: This will store all the data related to email schedules and sequences, as well as the status of each scheduled email and sequence. The database schema will be designed to efficiently store and retrieve this data.
-4. **Job Scheduler**: This will be a separate process that runs at regular intervals. It will fetch scheduled emails and sequences from the database and send them out in the correct order. It will also update the status of each email and sequence in the database.
-5. **Email Service**: This will be responsible for the actual sending of emails. The job scheduler will interact with this service to send out the emails.
-This architecture separates concerns into distinct components, each responsible for a specific part of the application. This makes the application easier to develop, test, and maintain. It also allows for scalability, as each component can be scaled independently based on its specific load and performance requirements.
+The software architecture for this FastAPI application will be a simple monolithic architecture, as it's a straightforward inventory management system. Here's a brief overview:
+
+1. **FastAPI Application**: FastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.6+ based on standard Python type hints. It will be used to handle all the HTTP requests and responses.
+2. **Endpoints**: The application will have several endpoints to handle adding, updating, deleting, and viewing items in the inventory.
+3. **Item Model**: This is the data model that will define the structure of the items in the inventory. It will include fields such as name, description, quantity, etc.
+4. **Database**: The application will need a database to store the inventory data. You can choose any SQL or NoSQL database based on your preference and requirements.
+5. **Server**: The application will be hosted on a server. You can choose to host it on a cloud provider like AWS, Google Cloud, or Azure, or on a local server.
+
+This is a high-level overview of the architecture. The actual implementation details might vary based on your specific requirements and preferences.
 
 ### The ticket assigned to you
 

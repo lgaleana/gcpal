@@ -22,6 +22,7 @@ def create_or_edit_pr(
     tool: Union[WritePRParams, AmendPRParams],
     state_name: str,
     docker: commands.DockerRunner,
+    repo: str,
 ) -> github.PullRequest:
     # Create files locally first
     print_system("Copying files to container...")
@@ -44,7 +45,7 @@ def create_or_edit_pr(
     container.copy_files(
         files=tool.files + tool.test_files,
         root=root_path,
-        container_path=f"/home/app",
+        container_path=f"/home/{repo}",
         docker=docker,
     )
     docker.execute_one("git status")
@@ -83,6 +84,7 @@ def create_or_edit_pr(
             title=tool.title,
             description=tool.description,
             test_plan="pytest",
+            repo=repo,
         )
     else:
         pr = tool.original
@@ -110,6 +112,6 @@ def rollback(branch: str, docker: commands.DockerRunner) -> None:
 
 
 def create_pr(
-    tool: WritePRParams, state_name: str, docker: commands.DockerRunner
+    tool: WritePRParams, state_name: str, docker: commands.DockerRunner, repo: str
 ) -> github.PullRequest:
-    return create_or_edit_pr(tool, state_name, docker)
+    return create_or_edit_pr(tool, state_name, docker, repo)

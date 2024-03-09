@@ -73,9 +73,9 @@ class ReviewComment(GithubComment):
         )
 
 
-def get_repo_files(branch: str = "main") -> List[Optional[GithubFile]]:
+def get_repo_files(repo: str, branch: str = "main") -> List[Optional[GithubFile]]:
     response = requests.get(
-        f"https://api.github.com/repos/lgaleana/email-sequences/git/trees/{branch}?recursive=1",
+        f"https://api.github.com/repos/lgaleana/{repo}/git/trees/{branch}?recursive=1",
         headers=HEADERS,
     )
     response.raise_for_status()
@@ -84,13 +84,13 @@ def get_repo_files(branch: str = "main") -> List[Optional[GithubFile]]:
     repo_data = response.json()
     for file in repo_data["tree"]:
         if file["type"] == "blob":  # Make sure it's a file
-            file_contents.append(get_file_contents(file["path"]))
+            file_contents.append(get_file_contents(file["path"], repo=repo))
     return file_contents
 
 
-def get_file_contents(file_path: str) -> Optional[GithubFile]:
+def get_file_contents(file_path: str, repo: str) -> Optional[GithubFile]:
     response = requests.get(
-        f"https://api.github.com/repos/lgaleana/email-sequences/contents/{file_path}",
+        f"https://api.github.com/repos/lgaleana/{repo}/contents/{file_path}",
         headers=HEADERS,
     )
     if response.status_code == 200:
@@ -102,10 +102,8 @@ def get_file_contents(file_path: str) -> Optional[GithubFile]:
     return None
 
 
-def get_last_commits(n: int):
-    response = requests.get(
-        "https://api.github.com/repos/lgaleana/email-sequences/commits"
-    )
+def get_last_commits(n: int, repo: str):
+    response = requests.get(f"https://api.github.com/repos/lgaleana/{repo}/commits")
     response.raise_for_status()
     commits = response.json()
     return [
@@ -120,11 +118,11 @@ def get_last_commits(n: int):
 
 
 def create_pr(
-    head: str, base: str, title: str, description: str, test_plan: str
+    head: str, base: str, title: str, description: str, test_plan: str, repo: str
 ) -> PullRequest:
     body = f"{description}\n\n### Test Plan\n\n{test_plan}"
     response = requests.post(
-        "https://api.github.com/repos/lgaleana/email-sequences/pulls",
+        f"https://api.github.com/repos/lgaleana/{repo}/pulls",
         headers=HEADERS,
         json={"title": title, "body": body, "head": head, "base": base},
     )

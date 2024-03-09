@@ -21,14 +21,14 @@ AGENT = "coder"
 TOOL_FAIL_MSG = "Fix the tests and re-create the PR. Go ahead."
 
 
-def run(state: State, ticket_key: str) -> None:
-    tickets = jira.get_grouped_issues()
-    codebase = github.get_repo_files()
+def run(state: State, repo: str, ticket_key: str) -> None:
+    tickets = jira.get_grouped_issues(ticket_key.split("-")[0])
+    codebase = github.get_repo_files(repo=repo)
     active_ticket = jira.find_issue(tickets, ticket_key)
     assert active_ticket
     docker = DockerRunner(
         startup_commands=[
-            "cd /home/app",
+            f"cd /home/{repo}",
             "pwd",
             "source venv/bin/activate",
             "git checkout main",
@@ -50,7 +50,7 @@ def run(state: State, ticket_key: str) -> None:
             conversation.add_tool(tool=ai_action)
 
             try:
-                state.pr = create_pr(tool, state.name, docker)
+                state.pr = create_pr(tool, state.name, docker, repo=repo)
                 conversation.add_tool_response(
                     tool_id=ai_action.id,
                     message=(f"PR created successfully :: {state.pr}"),
@@ -86,6 +86,7 @@ def run(state: State, ticket_key: str) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("ticket", type=str)
+    parser.add_argument("repo", type=str)
     parser.add_argument("--name", type=str, default=None)
     args = parser.parse_args()
 
@@ -97,4 +98,4 @@ if __name__ == "__main__":
             name=str(time.time()), agent=AGENT, conversation=Conversation(), pr=None
         )
 
-    run(state, args.ticket)
+    run(state, repo=args.repo, ticket_key=args.ticket)
