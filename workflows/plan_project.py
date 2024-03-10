@@ -42,7 +42,7 @@ def run(state: State, project: str) -> None:
             print_system(issue)
             conversation.add_tool_response(
                 tool_id=ai_action.id,
-                message=f"Issue created successfuly.",
+                message=f"Issue created successfuly. Key :: {issue['key']}.",
             )
         else:
             tool = pm.Exit.model_validate(ai_action.arguments)

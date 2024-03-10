@@ -63,11 +63,12 @@ def create_issue(
         headers=HEADERS,
         auth=AUTH,
     )
+    response.raise_for_status()
     return response.json()
 
 
 def get_all_issues(project_key: str) -> List[Dict[str, Any]]:
-    jql_query = f"project='IN' AND issuetype in ('Epic', 'Story', 'Subtask')"
+    jql_query = f"project='{project_key}' AND issuetype in ('Epic', 'Story', 'Subtask')"
     response = requests.get(
         f"{DOMAIN}/search?jql={jql_query}", headers=HEADERS, auth=AUTH
     )

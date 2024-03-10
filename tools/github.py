@@ -93,13 +93,12 @@ def get_file_contents(file_path: str, repo: str) -> Optional[GithubFile]:
         f"https://api.github.com/repos/lgaleana/{repo}/contents/{file_path}",
         headers=HEADERS,
     )
-    if response.status_code == 200:
-        file_data = response.json()
-        # Decode the base64 content
-        content = base64.b64decode(file_data["content"]).decode("utf-8")
-        return GithubFile(path=file_path, content=content)
+    response.raise_for_status()
 
-    return None
+    file_data = response.json()
+    # Decode the base64 content
+    content = base64.b64decode(file_data["content"]).decode("utf-8")
+    return GithubFile(path=file_path, content=content)
 
 
 def get_last_commits(n: int, repo: str):
