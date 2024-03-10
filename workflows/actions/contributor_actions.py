@@ -33,5 +33,7 @@ def rollback(pr: PullRequest, docker: DockerRunner) -> None:
     print_system("Rollback successful...")  # roll back commit
 
 
-def edit_pr(tool: AmendPRParams, state_name: str, docker: DockerRunner) -> PullRequest:
-    return create_or_edit_pr(tool, state_name, docker)
+def edit_pr(
+    tool: AmendPRParams, state_name: str, docker: DockerRunner, repo: str
+) -> PullRequest:
+    return create_or_edit_pr(tool, state_name, docker, repo)

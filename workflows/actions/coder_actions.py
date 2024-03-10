@@ -50,12 +50,17 @@ def create_or_edit_pr(
     )
     docker.execute_one("git status")
 
+    # 3. Delete files
+    rm = docker.execute_one(f"rm -f {' '.join(tool.deleted_files)}")
+    if rm.status == CommandStatus.ERROR:
+        raise PRError(f"Error running :: `{rm.command}`. Error :: {rm.output_str()}")
+
     # 3. Install new requirements
     pip = docker.execute_one("python3 -m pip install -r requirements.txt")
     if pip.status == CommandStatus.ERROR:
         raise PRError(f"Error running :: `{pip.command}`. Error :: {pip.output_str()}")
 
-    # 4. Run tests
+    # 5. Run tests
     pytest = docker.execute_one("python3 -m pytest")
     if (
         pytest.status == CommandStatus.ERROR
@@ -64,7 +69,7 @@ def create_or_edit_pr(
     ):
         raise TestsError(f"The tests failed :: {pytest.output_str()}")
 
-    # 5. Create commit and push
+    # 6. Create commit and push
     commit_commands = docker.execute(
         [
             "git add .",
@@ -77,7 +82,7 @@ def create_or_edit_pr(
             raise PRError(f"Error running :: `{c.command}`. Error :: {c.output_str()}")
 
     if isinstance(tool, WritePRParams):
-        # 6. Create PR
+        # 7. Create PR
         pr = github.create_pr(
             head=tool.git_branch,
             base="main",

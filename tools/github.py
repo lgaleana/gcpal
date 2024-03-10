@@ -140,9 +140,9 @@ def create_pr(
     )
 
 
-def get_review_comments(pr_number: int) -> List[GithubComment]:
+def get_review_comments(pr_number: int, repo: str) -> List[GithubComment]:
     response = requests.get(
-        f"https://api.github.com/repos/lgaleana/email-sequences/pulls/{pr_number}/comments",
+        f"https://api.github.com/repos/lgaleana/{repo}/pulls/{pr_number}/comments",
         headers=HEADERS,
     )
     response.raise_for_status()
@@ -162,9 +162,9 @@ def get_review_comments(pr_number: int) -> List[GithubComment]:
     ]
 
 
-def get_issue_comments(pr_number: int) -> List[GithubComment]:
+def get_issue_comments(pr_number: int, repo: str) -> List[GithubComment]:
     response = requests.get(
-        f"https://api.github.com/repos/lgaleana/email-sequences/issues/{pr_number}/comments",
+        f"https://api.github.com/repos/lgaleana/{repo}/issues/{pr_number}/comments",
         headers=HEADERS,
     )
     response.raise_for_status()
@@ -183,10 +183,10 @@ def get_issue_comments(pr_number: int) -> List[GithubComment]:
 
 
 def get_comments(
-    pr_number: int, username: str, skip_ids: List[int]
+    pr_number: int, username: str, skip_ids: List[int], repo: str
 ) -> List[Union[ReviewComment, GithubComment]]:
-    review_comments = get_review_comments(pr_number)
-    issue_comments = get_issue_comments(pr_number)
+    review_comments = get_review_comments(pr_number, repo)
+    issue_comments = get_issue_comments(pr_number, repo)
 
     all_comments = []
     for comment in sorted(review_comments + issue_comments, key=lambda c: c.created_at):
@@ -195,9 +195,11 @@ def get_comments(
     return all_comments
 
 
-def reply_to_comment(pr_number: int, comment_id: int, reply: str) -> ReviewComment:
+def reply_to_comment(
+    pr_number: int, comment_id: int, reply: str, repo: str
+) -> ReviewComment:
     response = requests.post(
-        f"https://api.github.com/repos/lgaleana/email-sequences/pulls/{pr_number}/comments/{comment_id}/replies",
+        f"https://api.github.com/repos/lgaleana/{repo}/pulls/{pr_number}/comments/{comment_id}/replies",
         json={"body": reply},
         headers=HEADERS,
     )

@@ -20,13 +20,13 @@ from workflows.actions.contributor_actions import edit_pr, rollback
 AGENT = "contributor"
 
 
-def run(context_state: State, state: State) -> None:
+def run(context_state: State, repo: str, state: State) -> None:
     assert context_state.pr
     pr = context_state.pr
 
     docker = DockerRunner(
         startup_commands=[
-            "cd /home/app",
+            f"cd /home/{repo}",
             "pwd",
             "source venv/bin/activate",
             "git checkout main",
@@ -38,7 +38,10 @@ def run(context_state: State, state: State) -> None:
     acted_comments = state.acted_comments
 
     comments = github.get_comments(
-        pr.number, username="lgaleana-llm", skip_ids=acted_comments
+        pr.number,
+        username="lgaleana-llm",
+        skip_ids=acted_comments,
+        repo=repo,
     )
     if not comments:
         print_system("No new comments.")
@@ -58,7 +61,10 @@ def run(context_state: State, state: State) -> None:
             user_message = user_input()
             if user_message == "y":
                 assistant_comment = github.reply_to_comment(
-                    pr.number, comment.id, reply=ai_action
+                    pr.number,
+                    comment.id,
+                    reply=ai_action,
+                    repo=repo,
                 )
                 print_system(f"Comment saved :: {assistant_comment}")
                 conversation.add_system("Comment saved.")
@@ -76,7 +82,7 @@ def run(context_state: State, state: State) -> None:
             conversation.add_tool(tool=ai_action)
 
             try:
-                state.pr = edit_pr(tool, state.name, docker)
+                state.pr = edit_pr(tool, state.name, docker, repo=repo)
                 conversation.add_tool_response(
                     tool_id=ai_action.id,
                     message=(f"PR amended successfully :: {state.pr}"),
@@ -114,6 +120,7 @@ def run(context_state: State, state: State) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("context", type=str)
+    parser.add_argument("repo", type=str)
     parser.add_argument("--name", type=str, default=None)
     args = parser.parse_args()
 
@@ -126,4 +133,4 @@ if __name__ == "__main__":
         )
     context_state = State.load(args.context, CODER_AGENT)
 
-    run(context_state, state)
+    run(context_state, args.repo, state)
