@@ -96,9 +96,9 @@ def run(context_state: State, repo: str, state: State) -> None:
                 print_system()
 
                 rollback(pr, docker)
-                conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
 
                 if isinstance(e, TestsError):
+                    conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
                     conversation.add_tool_response(
                         tool_id=ai_action.id,
                         message=sumamrize_test_failure(pr=tool, failure_msg=str(e)),
@@ -114,7 +114,6 @@ def run(context_state: State, repo: str, state: State) -> None:
     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
     acted_comments.append(comment.id)
     state.persist()
-    print_system(state.name)
 
 
 if __name__ == "__main__":

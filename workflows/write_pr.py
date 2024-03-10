@@ -74,9 +74,9 @@ def run(context_state: State, state: State, repo: str, ticket_key: str) -> None:
                 print_system()
 
                 rollback(tool.git_branch, docker)
-                conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
 
                 if isinstance(e, TestsError):
+                    conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
                     conversation.add_tool_response(
                         tool_id=ai_action.id,
                         message=sumamrize_test_failure(pr=tool, failure_msg=str(e)),
