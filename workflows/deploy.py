@@ -17,23 +17,24 @@ AGENT = "devops"
 TOOL_FAIL_MSG = "Fix the tests and re-create the PR. Go ahead."
 
 
-def run(state: State) -> None:
+def run(state: State, repo: str) -> None:
     startup_commands = [
-        "cd /home/app",
+        f"cd /home/{repo}",
         "source venv/bin/activate",
-        "git checkout remove-docker",
+        "git checkout main",
+        "git pull origin main --rebase",
         "gcloud config set project gcpal-409321",
         "pwd",
     ]
     docker = DockerRunner(startup_commands)
     init_commands = docker.execute(startup_commands)
-    codebase = github.get_repo_files(branch="remove-docker")
+    codebase = github.get_repo_files(repo)
 
     conversation = state.conversation
 
     while True:
         ai_action = devops.next_action(
-            conversation, repo_files=codebase, command_list=init_commands
+            conversation, repo=repo, repo_files=codebase, command_list=init_commands
         )
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
@@ -56,7 +57,7 @@ def run(state: State) -> None:
 
             last_command = commands[-1]
             output_str = "\n".join([c.output_str() for c in commands])
-            if last_command.status == CommandStatus.ERROR:
+            if last_command.status == CommandStatus.ERROR or "ERROR: " in output_str:
                 conversation.add_tool_response(
                     tool_id=ai_action.id,
                     message=f"ERROR :: {output_str}",
@@ -73,13 +74,14 @@ def run(state: State) -> None:
                 else:
                     conversation.add_tool_response(
                         tool_id=ai_action.id,
-                        message=f"Command timed out :: {output_str}",
+                        message=f"{output_str}\n\nERROR: Command timed out...",
                     )
         state.persist()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("repo", type=str)
     parser.add_argument("--name", type=str, default=None)
     args = parser.parse_args()
 
@@ -91,4 +93,4 @@ if __name__ == "__main__":
             name=str(time.time()), agent=AGENT, conversation=Conversation(), pr=None
         )
 
-    run(state)
+    run(state, args.repo)

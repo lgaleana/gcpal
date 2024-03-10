@@ -50,9 +50,6 @@ gh
 
 ### Codebase
 
-**Github repo**: https://github.com/lgaleana/email-sequences
-**Main branch**: `main`
-
 {codebase}
 
 ### Commands that you have ran so far
@@ -62,14 +59,12 @@ gh
 ### Instructions
 
 - The user doesn't have the ability to execute commands.
-- You must always request the information that you need from them.
-- You should always execute commands yourself instead of asking the user to do something for you.
-
-Say hi."""
+- You should always execute commands yourself instead of asking the user to do something for you."""
 
 
 def next_action(
     conversation: Conversation,
+    repo: str,
     repo_files: List[Optional[GithubFile]],
     command_list: List[Command],
 ):
@@ -78,12 +73,17 @@ def next_action(
             {
                 "role": "system",
                 "content": PROMPT.format(
+                    repo=repo,
                     codebase="\n".join(str(f) for f in repo_files),
                     commands="\n".join(
                         [f"# {c.command}\n{c.output_str()}" for c in command_list]
                     ),
                 ),
-            }
+            },
+            {
+                "role": "user",
+                "content": "What is the easiest way to deploy this?",
+            },
         ]
         + conversation,
         tools=TOOLS,
