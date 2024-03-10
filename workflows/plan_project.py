@@ -27,7 +27,7 @@ def run(state: State, project: str) -> None:
             conversation.add_assistant(ai_action)
             user_message = user_input()
             conversation.add_user(user_message)
-        elif isinstance(ai_action, pm.FileIssueParams):
+        elif ai_action.name == pm.Action.FILE_ISSUE:
             tool = pm.FileIssueParams.model_validate(ai_action.arguments)
             print_system(tool)
             conversation.add_tool(ai_action)
@@ -42,7 +42,7 @@ def run(state: State, project: str) -> None:
             print_system(issue)
             conversation.add_tool_response(
                 tool_id=ai_action.id,
-                message=f"Issue created successfuly. Key :: {issue['key']}.",
+                message=f"Issue created successfuly.",
             )
         else:
             tool = pm.Exit.model_validate(ai_action.arguments)

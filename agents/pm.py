@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,7 +15,7 @@ class Action:
 class FileIssueParams(BaseModel):
     type_: IssueType = Field(description="Type of the issue")
     title: str = Field(description="Title of the issue")
-    description: str = Field(description="Description of the issue")
+    description: str = Field(description="Detailed description of the issue")
     parent_key: Optional[str] = Field(None, description="Parent of the issue")
 
 
@@ -60,11 +60,7 @@ As you work with the user, you can do it in a top-down fashion. That is:
     - Brief description of the subtasks.
     - Agree on the subtasks.
 
-Instructions:
-- There is no need to specify tests. Tests shouls be considered part of each subtask.
-- There is no need to specify deployment. The project will be deployed continiously.
-- Add a subtask to set up the codebase.
-- Once everything has been agreed upon, exit.
+Once everything has been agreed upon, exit.
 
 Say hi."""
 
