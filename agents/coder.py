@@ -64,19 +64,11 @@ You are working in the following project
 
 ### Project description
 
-FastAPI application that lets users manage an inventory.
+{project_description}
 
 ### Architecture overview
 
-The software architecture for this FastAPI application will be a simple monolithic architecture, as it's a straightforward inventory management system. Here's a brief overview:
-
-1. **FastAPI Application**: FastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.6+ based on standard Python type hints. It will be used to handle all the HTTP requests and responses.
-2. **Endpoints**: The application will have several endpoints to handle adding, updating, deleting, and viewing items in the inventory.
-3. **Item Model**: This is the data model that will define the structure of the items in the inventory. It will include fields such as name, description, quantity, etc.
-4. **Database**: The application will need a database to store the inventory data. You can choose any SQL or NoSQL database based on your preference and requirements.
-5. **Server**: The application will be hosted on a server. You can choose to host it on a cloud provider like AWS, Google Cloud, or Azure, or on a local server.
-
-This is a high-level overview of the architecture. The actual implementation details might vary based on your specific requirements and preferences.
+{project_architecture}
 
 ### The ticket assigned to you
 
@@ -105,6 +97,8 @@ This is a high-level overview of the architecture. The actual implementation det
 def next_action(
     ticket: Issue,
     conversation: Conversation,
+    project_description: str,
+    project_architecture: str,
     repo_files: List[Optional[GithubFile]],
 ):
     next = llm.stream_next(
@@ -112,6 +106,8 @@ def next_action(
             {
                 "role": "user",
                 "content": PROMPT.format(
+                    project_description=project_description,
+                    project_architecture=project_architecture,
                     ticket=ticket,
                     codebase="\n".join(str(f) for f in repo_files),
                 ),

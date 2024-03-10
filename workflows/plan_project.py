@@ -9,7 +9,7 @@ load_dotenv()
 from agents import pm
 from ai_tools import summarize_architecture
 from tools import jira
-from utils.io import user_input, print_system
+from utils.io import print_assistant, print_system, user_input
 from utils.state import Conversation, State
 
 
@@ -47,7 +47,10 @@ def run(state: State, project: str) -> None:
         else:
             tool = pm.Exit.model_validate(ai_action.arguments)
             summary = summarize_architecture(conversation)
-            conversation.add_assistant(summary)
+            state.project_description = summary.project_description
+            state.project_architecture = summary.architecture_overview
+            print_assistant(summary.project_description)
+            print_assistant(summary.architecture_overview)
 
         state.persist()
 

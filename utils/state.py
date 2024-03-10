@@ -81,6 +81,8 @@ class State(BaseModel):
     agent: str
     conversation: Conversation = Conversation()
     pr: Optional[PullRequest] = None
+    project_description: Optional[str] = None
+    project_architecture: Optional[str] = None
     acted_comments: List = []
 
     class Config:
@@ -96,6 +98,8 @@ class State(BaseModel):
             agent=agent,
             conversation=Conversation(payload["conversation"]),
             pr=payload.get("pr"),
+            project_description=payload.get("project_description"),
+            project_architecture=payload.get("project_architecture"),
             acted_comments=payload.get("acted_comments", []),
         )
 
