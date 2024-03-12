@@ -50,6 +50,8 @@ gh
 
 ### Codebase
 
+**Repository**: https://github.com/lgaleana/{repo}
+
 {codebase}
 
 ### Commands that you have ran so far

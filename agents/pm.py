@@ -9,7 +9,6 @@ from utils.state import Conversation
 
 class Action:
     FILE_ISSUE = "file_issue"
-    EXIT = "exit"
 
 
 class FileIssueParams(BaseModel):
@@ -19,10 +18,6 @@ class FileIssueParams(BaseModel):
     parent_key: Optional[str] = Field(None, description="Parent of the issue")
 
 
-class Exit(BaseModel):
-    ...
-
-
 TOOLS = [
     {
         "type": "function",
@@ -30,14 +25,6 @@ TOOLS = [
             "name": Action.FILE_ISSUE,
             "description": "Executes shell commands in Ubuntu",
             "parameters": FileIssueParams.schema(),
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": Action.EXIT,
-            "description": "Finish the conversation once everything has been agreed upon.",
-            "parameters": Exit.schema(),
         },
     },
 ]
@@ -59,8 +46,6 @@ As you work with the user, you can do it in a top-down fashion. That is:
 3. For each story,
     - Brief description of the subtasks.
     - Agree on the subtasks.
-
-Once everything has been agreed upon, exit.
 
 Say hi."""
 
