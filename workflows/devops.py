@@ -88,10 +88,10 @@ def run(context_state: State, state: State, repo: str, ticket_key: str) -> None:
                 else:
                     conversation.add_tool_response(
                         tool_id=ai_action.id,
-                        message=(
-                            f"{output_str}\n\nERROR: Command timed out...\n"
-                            "Verify if the command executed successfully."
-                        ),
+                        message=f"{output_str}\n\nERROR: Command timed out...\n",
+                    )
+                    conversation.add_user(
+                        "Verify if the command executed successfully."
                     )
         state.persist()
 
