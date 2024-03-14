@@ -76,7 +76,8 @@ gh
 ### Instructions
 
 - The user doesn't have the ability to execute commands.
-- You should always execute commands yourself instead of asking the user to do something for you."""
+- You should always execute commands yourself instead of asking the user to do something for you.
+- If the command has the flags, run it in a non-interactive way. Otherwise, it might time out."""
 
 
 def next_action(

@@ -77,10 +77,16 @@ def run(context_state: State, state: State, repo: str, ticket_key: str) -> None:
                     message=f"ERROR :: {output_str}",
                 )
             else:
+                output_str = "\n".join(
+                    [
+                        c.output_str()
+                        if c.command.startswith("cat")
+                        or c.command == c.command.startswith("ls")
+                        else c.output_str(max_len=100)
+                        for c in commands
+                    ]
+                )
                 if last_command.status == CommandStatus.SUCCESS:
-                    max_len = 500
-                    if len(output_str) > max_len:
-                        output_str = f"Output too long: ... {output_str[-max_len:]}"
                     conversation.add_tool_response(
                         tool_id=ai_action.id,
                         message=output_str,
@@ -90,6 +96,7 @@ def run(context_state: State, state: State, repo: str, ticket_key: str) -> None:
                         tool_id=ai_action.id,
                         message=f"{output_str}\n\nERROR: Command timed out...\n",
                     )
+                    conversation.add_system(f"# cd /home/{repo}\n# pwd\n/home/{repo}")
                     conversation.add_user(
                         "Verify if the command executed successfully."
                     )

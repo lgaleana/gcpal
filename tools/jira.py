@@ -89,7 +89,9 @@ def get_grouped_issues(project_key: str) -> List[Issue]:
             title=raw_issue["fields"]["summary"],
             description=raw_issue["fields"]["description"]["content"][0]["content"][0][
                 "text"
-            ],
+            ]
+            if raw_issue["fields"]["description"]
+            else "",
             status=raw_issue["fields"]["status"]["name"],
             children=[],
             parent_key=raw_issue["fields"].get("parent", {}).get("key"),

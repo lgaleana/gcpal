@@ -69,8 +69,11 @@ class Command(BaseModel):
         CommandStatus.TIMEOUT,  # type: ignore
     ]
 
-    def output_str(self) -> str:
-        return "\n".join(self.output)
+    def output_str(self, max_len: int = -1) -> str:
+        output_str = "\n".join(self.output)
+        if max_len >= 0:
+            output_str = f"Output too long: ... {output_str[-max_len:]}"
+        return output_str
 
 
 command_list = []
