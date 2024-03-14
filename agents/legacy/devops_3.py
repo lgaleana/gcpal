@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 
 from ai import llm
 from tools.github import GithubFile
-from tools.jira import Issue
 from utils.state import Command, Conversation
 
 
@@ -30,31 +29,11 @@ TOOLS = [
 ]
 
 
-PROMPT = """You are a helpful AI assistant that helps software engineers with devops tickets.
+PROMPT = """You are a helpful AI assistant that helps software engineers with devops tasks.
 
 You can execute commands by calling the `execute_shell` function.
-You are inside a docker container with ubuntu:latest.
+You are inside an Ubuntu docker container.
 You have access to Google Cloud Platform. You rely on a service key. You have Editor permissions.
-
-You are working in the following project
-
-### Project description
-
-{project_description}
-
-### Architecture overview
-
-{project_architecture}
-
-### The ticket assigned to you
-
-{ticket}
-
-### Codebase
-
-**Repository**: https://github.com/lgaleana/{repo}
-
-{codebase}
 
 ### Packages installed
 
@@ -69,6 +48,10 @@ docker
 gh
 ```
 
+### Codebase
+
+{codebase}
+
 ### Commands that you have ran so far
 
 {commands}
@@ -80,10 +63,7 @@ gh
 
 
 def next_action(
-    ticket: Issue,
     conversation: Conversation,
-    project_description: str,
-    project_architecture: str,
     repo: str,
     repo_files: List[Optional[GithubFile]],
     command_list: List[Command],
@@ -93,15 +73,16 @@ def next_action(
             {
                 "role": "system",
                 "content": PROMPT.format(
-                    project_description=project_description,
-                    project_architecture=project_architecture,
-                    ticket=ticket,
                     repo=repo,
                     codebase="\n".join(str(f) for f in repo_files),
                     commands="\n".join(
                         [f"# {c.command}\n{c.output_str()}" for c in command_list]
                     ),
                 ),
+            },
+            {
+                "role": "user",
+                "content": "What is the easiest way to deploy this?",
             },
         ]
         + conversation,

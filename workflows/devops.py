@@ -7,17 +7,24 @@ load_dotenv()
 
 from agents import devops
 from tools import github
+from tools import jira
 from tools.docker.commands import DockerRunner
 from utils.io import user_input, print_system
 from utils.state import CommandStatus, Conversation, State
+from workflows.plan_project import AGENT as PM_AGENT
 
 
 AGENT = "devops"
 
-TOOL_FAIL_MSG = "Fix the tests and re-create the PR. Go ahead."
 
+def run(context_state: State, state: State, repo: str, ticket_key: str) -> None:
+    assert context_state.project_description
+    assert context_state.project_architecture
 
-def run(state: State, repo: str) -> None:
+    tickets = jira.get_grouped_issues(ticket_key.split("-")[0])
+    codebase = github.get_repo_files(repo=repo)
+    active_ticket = jira.find_issue(tickets, ticket_key)
+    assert active_ticket
     startup_commands = [
         f"cd /home/{repo}",
         "source venv/bin/activate",
@@ -26,7 +33,8 @@ def run(state: State, repo: str) -> None:
         "gcloud config set project gcpal-409321",
         "pwd",
     ]
-    docker = DockerRunner(startup_commands)
+    docker = DockerRunner()
+    docker.adhoc_commands = startup_commands
     init_commands = docker.execute(startup_commands)
     codebase = github.get_repo_files(repo)
 
@@ -34,7 +42,13 @@ def run(state: State, repo: str) -> None:
 
     while True:
         ai_action = devops.next_action(
-            conversation, repo=repo, repo_files=codebase, command_list=init_commands
+            ticket=active_ticket,
+            conversation=conversation,
+            project_description=context_state.project_description,
+            project_architecture=context_state.project_architecture,
+            repo=repo,
+            repo_files=codebase,
+            command_list=init_commands,
         )
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
@@ -63,10 +77,10 @@ def run(state: State, repo: str) -> None:
                     message=f"ERROR :: {output_str}",
                 )
             else:
-                max_len = 500
-                if len(output_str) > max_len:
-                    output_str = f"Output too long: ... {output_str[-max_len:]}"
                 if last_command.status == CommandStatus.SUCCESS:
+                    max_len = 500
+                    if len(output_str) > max_len:
+                        output_str = f"Output too long: ... {output_str[-max_len:]}"
                     conversation.add_tool_response(
                         tool_id=ai_action.id,
                         message=output_str,
@@ -74,14 +88,19 @@ def run(state: State, repo: str) -> None:
                 else:
                     conversation.add_tool_response(
                         tool_id=ai_action.id,
-                        message=f"{output_str}\n\nERROR: Command timed out...",
+                        message=(
+                            f"{output_str}\n\nERROR: Command timed out...\n"
+                            "Verify if the command executed successfully."
+                        ),
                     )
         state.persist()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("ticket", type=str)
     parser.add_argument("repo", type=str)
+    parser.add_argument("context", type=str)
     parser.add_argument("--name", type=str, default=None)
     args = parser.parse_args()
 
@@ -92,5 +111,6 @@ if __name__ == "__main__":
         state = State(
             name=str(time.time()), agent=AGENT, conversation=Conversation(), pr=None
         )
+    context_state = State.load(args.context, PM_AGENT)
 
-    run(state, args.repo)
+    run(context_state, state, repo=args.repo, ticket_key=args.ticket)

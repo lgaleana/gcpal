@@ -95,8 +95,9 @@ class DockerRunner:
                 _signal_exit()
                 process.terminate()
                 process.kill()
-                stdout.join()
-                stderr.join()
+                # Waiting ends in actual timeouts
+                # stdout.join()
+                # stderr.join()
 
                 # Re-create
                 process = subprocess.Popen(
