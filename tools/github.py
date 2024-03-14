@@ -96,8 +96,15 @@ def get_file_contents(file_path: str, repo: str) -> Optional[GithubFile]:
     response.raise_for_status()
 
     file_data = response.json()
-    # Decode the base64 content
-    content = base64.b64decode(file_data["content"]).decode("utf-8")
+    # TODO: Make this more generic
+    if file_path.endswith("package-lock.json") or file_path.endswith("package.json"):
+        content = "..."
+    else:
+        # Decode the base64 content
+        try:
+            content = base64.b64decode(file_data["content"]).decode("utf-8")
+        except:
+            content = "..."
     return GithubFile(path=file_path, content=content)
 
 
