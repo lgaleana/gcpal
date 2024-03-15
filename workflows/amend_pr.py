@@ -36,6 +36,7 @@ def run(context_state: State, repo: str, state: State) -> None:
 
     conversation = state.conversation
     acted_comments = state.acted_comments
+    codebase = None
 
     comments = github.get_comments(
         pr.number,
@@ -98,10 +99,15 @@ def run(context_state: State, repo: str, state: State) -> None:
                 rollback(pr, docker)
 
                 if isinstance(e, TestsError):
+                    if not codebase:
+                        codebase = github.get_repo_files(repo=repo)
+
                     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
                     conversation.add_tool_response(
                         tool_id=ai_action.id,
-                        message=sumamrize_test_failure(pr=tool, failure_msg=str(e)),
+                        message=sumamrize_test_failure(
+                            pr=tool, failure_msg=str(e), repo_files=codebase
+                        ),
                     )
                     conversation.add_user(TOOL_FAIL_MSG)
                 else:

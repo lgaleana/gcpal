@@ -1,18 +1,26 @@
-from typing import Union
+from typing import List, Optional, Union
 
 from agents.coder import WritePRParams
 from agents.contributor import AmendPRParams
 from ai import llm
+from tools.github import GithubFile
 from utils.state import Conversation
 
 from pydantic import BaseModel, Field
 
 
 def sumamrize_test_failure(
-    pr: Union[WritePRParams, AmendPRParams], failure_msg: str
+    pr: Union[WritePRParams, AmendPRParams],
+    failure_msg: str,
+    repo_files: List[Optional[GithubFile]],
 ) -> str:
+    codebase = "\n".join(str(f) for f in repo_files)
+
     PROMPT = f"""I wrote the following Pull Request with unit tests, but the tests failed.
     Help me understand the error and fix the tests.
+
+    Codebase:
+    {codebase}
 
     Pull request:
     {pr}

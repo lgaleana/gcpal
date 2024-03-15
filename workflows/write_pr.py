@@ -30,6 +30,10 @@ def run(context_state: State, state: State, repo: str, ticket_key: str) -> None:
     codebase = github.get_repo_files(repo=repo)
     active_ticket = jira.find_issue(tickets, ticket_key)
     assert active_ticket
+    assert (
+        active_ticket.type_ == f"Subtask"
+    ), "Tickets must be subtasks, found :: {active_ticket.type_}"
+
     docker = DockerRunner(
         startup_commands=[
             f"cd /home/{repo}",
@@ -79,7 +83,9 @@ def run(context_state: State, state: State, repo: str, ticket_key: str) -> None:
                     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
                     conversation.add_tool_response(
                         tool_id=ai_action.id,
-                        message=sumamrize_test_failure(pr=tool, failure_msg=str(e)),
+                        message=sumamrize_test_failure(
+                            pr=tool, failure_msg=str(e), repo_files=codebase
+                        ),
                     )
                     conversation.add_user(TOOL_FAIL_MSG)
                 else:
