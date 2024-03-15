@@ -67,13 +67,30 @@ def create_issue(
     return response.json()
 
 
-def get_all_issues(project_key: str) -> List[Dict[str, Any]]:
+def get_all_issues(project_key: str) -> List[Issue]:
     jql_query = f"project='{project_key}' AND issuetype in ('Epic', 'Story', 'Subtask')"
     response = requests.get(
         f"{DOMAIN}/search?jql={jql_query}", headers=HEADERS, auth=AUTH
     )
     response.raise_for_status()
-    return response.json().get("issues", [])
+
+    issues = response.json().get("issues", [])
+    return [
+        Issue(
+            type_=issue["fields"]["issuetype"]["name"],
+            key=issue["key"],
+            title=issue["fields"]["summary"],
+            description=issue["fields"]["description"]["content"][0]["content"][0][
+                "text"
+            ]
+            if issue["fields"]["description"]
+            else "",
+            status=issue["fields"]["status"]["name"],
+            children=[],
+            parent_key=issue["fields"].get("parent", {}).get("key"),
+        )
+        for issue in issues
+    ]
 
 
 def get_grouped_issues(project_key: str) -> List[Issue]:
@@ -82,20 +99,7 @@ def get_grouped_issues(project_key: str) -> List[Issue]:
     epics = {}
     stories = {}
     subtasks = []
-    for raw_issue in all_issues:
-        issue = Issue(
-            type_=raw_issue["fields"]["issuetype"]["name"],
-            key=raw_issue["key"],
-            title=raw_issue["fields"]["summary"],
-            description=raw_issue["fields"]["description"]["content"][0]["content"][0][
-                "text"
-            ]
-            if raw_issue["fields"]["description"]
-            else "",
-            status=raw_issue["fields"]["status"]["name"],
-            children=[],
-            parent_key=raw_issue["fields"].get("parent", {}).get("key"),
-        )
+    for issue in all_issues:
         if issue.type_ == "Epic":
             epics[issue.key] = issue
         elif issue.type_ == "Story":

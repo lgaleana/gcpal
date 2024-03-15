@@ -21,7 +21,7 @@ def run(context_state: State, state: State, repo: str, ticket_key: str) -> None:
     assert context_state.project_description
     assert context_state.project_architecture
 
-    tickets = jira.get_grouped_issues(ticket_key.split("-")[0])
+    tickets = jira.get_all_issues(ticket_key.split("-")[0])
     codebase = github.get_repo_files(repo=repo)
     active_ticket = jira.find_issue(tickets, ticket_key)
     assert active_ticket
