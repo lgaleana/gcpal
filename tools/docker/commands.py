@@ -26,7 +26,7 @@ process = subprocess.Popen(
 
 
 COMMAND_EXECUTED = "COMMAND_EXECUTED"
-ERROR_PREFIX = "ERROR_LINE: "
+ERROR_PREFIX = "ERROR: "
 TIMEOUT = 5
 
 
@@ -90,7 +90,7 @@ class DockerRunner:
                         break
                     output = queue.get(timeout=TIMEOUT)
             except Empty:
-                print("--- TIMEOUT ---")  # For debugging
+                print_system("--- TIMEOUT ---")
                 # Close connection
                 _signal_exit()
                 process.terminate()
