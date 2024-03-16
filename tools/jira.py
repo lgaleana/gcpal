@@ -80,9 +80,12 @@ def get_all_issues(project_key: str) -> List[Issue]:
             type_=issue["fields"]["issuetype"]["name"],
             key=issue["key"],
             title=issue["fields"]["summary"],
-            description=issue["fields"]["description"]["content"][0]["content"][0][
-                "text"
-            ]
+            description="\n".join(
+                [
+                    c["content"][0]["text"]
+                    for c in issue["fields"]["description"]["content"]
+                ]
+            )
             if issue["fields"]["description"]
             else "",
             status=issue["fields"]["status"]["name"],
