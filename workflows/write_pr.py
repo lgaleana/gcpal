@@ -56,8 +56,8 @@ def run(context_state: State, state: State, repo: str, ticket_key: str) -> None:
         )
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
-            user_message = user_input()
-            conversation.add_user(user_message)
+            # user_message = user_input()
+            # conversation.add_user(user_message)
         else:
             tool = coder.WritePRParams.model_validate(ai_action.arguments)
             print_system(tool)

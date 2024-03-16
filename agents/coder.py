@@ -87,10 +87,7 @@ You are working in the following project
 5. Use absolute imports.
 6. Include unit tests for every change you make. Use mocked data.
 
-### Instructions
-
-1. Discuss the implementation with me. Omit code.
-2. Only once I agree, create the PR.
+Discuss the implementation first. Omit code.
 """
 
 
