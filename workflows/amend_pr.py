@@ -59,24 +59,24 @@ def run(context_state: State, repo: str, state: State) -> None:
         )
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
-            user_message = user_input()
-            if user_message == "y":
-                assistant_comment = github.reply_to_comment(
-                    pr.number,
-                    comment.id,
-                    reply=ai_action,
-                    repo=repo,
-                )
-                print_system(f"Comment saved :: {assistant_comment}")
-                conversation.add_system("Comment saved.")
+            # user_message = user_input()
+            # if user_message == "y":
+            assistant_comment = github.reply_to_comment(
+                pr.number,
+                comment.id,
+                reply=ai_action,
+                repo=repo,
+            )
+            print_system(f"Comment saved :: {assistant_comment}")
+            conversation.add_system("Comment saved.")
 
-                if not there_is_followup(assistant_comment.body):
-                    # There are cases where the agent replies, but
-                    # the next action should immediately be to amend the PR
-                    break
-            else:
-                print_system("Comment not saved.")
+            if not there_is_followup(assistant_comment.body):
+                # There are cases where the agent replies, but
+                # the next action should immediately be to amend the PR
                 break
+            # else:
+            #     print_system("Comment not saved.")
+            #     break
         else:
             tool = contributor.AmendPRParams(original=pr, **ai_action.arguments)
             print_system(tool)
