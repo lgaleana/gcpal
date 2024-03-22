@@ -86,8 +86,6 @@ You are working in the following project
 4. Remember to add a new line at the end of each file.
 5. Use absolute imports.
 6. Include unit tests for every change you make. Use mocked data.
-
-Discuss the implementation first. Omit code.
 """
 
 

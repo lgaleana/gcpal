@@ -109,4 +109,23 @@ def collect_tool(first_chunk, response) -> RawTool:
             arguments += chunk.choices[0].delta.tool_calls[0].function.arguments
         print_assistant(".", end="", flush=True)
     print_assistant()
-    return RawTool(id=tool_id, name=tool_name, arguments=json.loads(arguments))
+
+    # print(arguments)
+    arguments = arguments.replace(r"\\'", "<ESCAPED_QUOTE>").replace(
+        r"\'", "<ESCAPED_QUOTE>"
+    )
+    arg_dict = json.loads(arguments)
+    arg_dict = unesacape_str(arg_dict)
+    # print(json.dumps(arg_dict, indent=2))
+
+    return RawTool(id=tool_id, name=tool_name, arguments=arg_dict)
+
+
+def unesacape_str(val: Any) -> Any:
+    if isinstance(val, str):
+        return val.replace("<ESCAPED_QUOTE>", "\\'")
+    if isinstance(val, List):
+        return [unesacape_str(v) for v in val]
+    if isinstance(val, Dict):
+        return {k: unesacape_str(v) for k, v in val.items()}
+    return val
