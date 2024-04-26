@@ -5,6 +5,8 @@ from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Optional, Union
 
+from utils.io import print_system
+
 
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 
@@ -59,6 +61,10 @@ class GithubComment(BaseModel):
 
     def __str__(self) -> str:
         return f"@{self.author}:\n  {self.body}"
+
+
+class PRCreationError(Exception):
+    pass
 
 
 class ReviewComment(GithubComment):
@@ -132,7 +138,9 @@ def create_pr(
         headers=HEADERS,
         json={"title": title, "body": body, "head": head, "base": base},
     )
-    response.raise_for_status()
+    if response.status_code < 200 or response.status_code >= 300:
+        raise PRCreationError(response.text)
+
     response = response.json()
     return PullRequest(
         number=response["number"],

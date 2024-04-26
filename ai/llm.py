@@ -16,7 +16,7 @@ class RawTool(BaseModel):
 client = OpenAI()
 
 
-MODEL = "gpt-4-turbo"
+MODEL = "gpt-4"
 TEMPERATURE = 0.0
 
 
