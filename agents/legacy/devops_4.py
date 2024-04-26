@@ -32,8 +32,19 @@ TOOLS = [
 
 PROMPT = """You are a helpful AI assistant that helps software engineers with devops tickets.
 
-You are inside a docker container running ubuntu.
-You have access to Google Cloud Platform. You are using the service account gcpal-881, that has the role Editor.
+You can execute commands by calling the `execute_shell` function.
+You are inside a docker container with ubuntu:latest.
+You have access to Google Cloud Platform. You rely on a service key. You have Editor permissions.
+
+You are working in the following project
+
+### Project description
+
+{project_description}
+
+### Architecture overview
+
+{project_architecture}
 
 ### The ticket assigned to you
 
@@ -72,6 +83,8 @@ gh
 def next_action(
     ticket: Issue,
     conversation: Conversation,
+    project_description: str,
+    project_architecture: str,
     repo: str,
     repo_files: List[Optional[GithubFile]],
     command_list: List[Command],
@@ -81,6 +94,8 @@ def next_action(
             {
                 "role": "system",
                 "content": PROMPT.format(
+                    project_description=project_description,
+                    project_architecture=project_architecture,
                     ticket=ticket,
                     repo=repo,
                     codebase="\n".join(str(f) for f in repo_files),

@@ -71,7 +71,7 @@ class Command(BaseModel):
 
     def output_str(self, max_len: int = -1) -> str:
         output_str = "\n".join(self.output)
-        if max_len >= 0:
+        if max_len >= 0 and max_len < len(output_str):
             output_str = f"Output too long: ... {output_str[-max_len:]}"
         return output_str
 

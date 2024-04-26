@@ -76,26 +76,25 @@ def get_all_issues(project_key: str) -> List[Issue]:
     )
     response.raise_for_status()
 
-    issues = response.json().get("issues", [])
-    return [
-        Issue(
-            type_=issue["fields"]["issuetype"]["name"],
-            key=issue["key"],
-            title=issue["fields"]["summary"],
-            description="\n".join(
-                [
-                    c["content"][0]["text"]
-                    for c in issue["fields"]["description"]["content"]
-                ]
+    issues_raw = response.json().get("issues", [])
+    issues = []
+    for issue in issues_raw:
+        lines = []
+        if issue["fields"]["description"]:
+            for paragraph in issue["fields"]["description"]["content"]:
+                lines.append(" ".join(c["text"] for c in paragraph["content"]))
+        issues.append(
+            Issue(
+                type_=issue["fields"]["issuetype"]["name"],
+                key=issue["key"],
+                title=issue["fields"]["summary"],
+                description="\n".join(lines) if issue["fields"]["description"] else "",
+                status=issue["fields"]["status"]["name"],
+                children=[],
+                parent_key=issue["fields"].get("parent", {}).get("key"),
             )
-            if issue["fields"]["description"]
-            else "",
-            status=issue["fields"]["status"]["name"],
-            children=[],
-            parent_key=issue["fields"].get("parent", {}).get("key"),
         )
-        for issue in issues
-    ]
+    return issues
 
 
 def get_grouped_issues(project_key: str) -> List[Issue]:
