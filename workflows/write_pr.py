@@ -27,9 +27,9 @@ def run(state: State, repo: str, ticket_key: str) -> None:
     codebase = github.get_repo_files(repo=repo)
     active_ticket = jira.find_issue(tickets, ticket_key)
     assert active_ticket
-    assert (
-        active_ticket.type_ in ["Subtask"]
-    ), "Tickets must be subtasks, found :: {active_ticket.type_}"
+    assert active_ticket.type_ in [
+        "Subtask"
+    ], "Tickets must be subtasks, found :: {active_ticket.type_}"
 
     docker = DockerRunner(
         startup_commands=[
@@ -87,7 +87,7 @@ def run(state: State, repo: str, ticket_key: str) -> None:
         state.persist()
 
     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
-    state.persist()
+    state.final_persist(ticket_key)
 
 
 if __name__ == "__main__":

@@ -106,8 +106,14 @@ class State(BaseModel):
             acted_comments=payload.get("acted_comments", []),
         )
 
-    def persist(self) -> None:
+    def _persist(self, name: str) -> None:
         payload = self.model_dump()
         payload["commands"] = [c.json() for c in command_list]
-        with open(f"db/{self.agent}/{self.name}.json", "w") as file:
+        with open(f"db/{self.agent}/{name}.json", "w") as file:
             json.dump(payload, file, indent=4)
+
+    def persist(self) -> None:
+        self._persist(self.name)
+
+    def final_persist(self, final_name: str) -> None:
+        self._persist(final_name)

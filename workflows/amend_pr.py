@@ -22,21 +22,9 @@ AGENT = "contributor"
 
 def run(context_state: State, repo: str, state: State) -> None:
     assert context_state.pr
+
     pr = context_state.pr
-
-    docker = DockerRunner(
-        startup_commands=[
-            f"cd /home/{repo}",
-            "pwd",
-            "source venv/bin/activate",
-            "git checkout main",
-            "git pull origin main --rebase",
-        ]
-    )
-
-    conversation = state.conversation
     acted_comments = state.acted_comments
-    codebase = None
 
     comments = github.get_comments(
         pr.number,
@@ -49,13 +37,25 @@ def run(context_state: State, repo: str, state: State) -> None:
         return
     comment = comments[0]
 
-    conversation.add_user("You have a new comment in the PR:")
+    docker = DockerRunner(
+        startup_commands=[
+            f"cd /home/{repo}",
+            "pwd",
+            "source venv/bin/activate",
+            "git checkout main",
+            "git pull origin main --rebase",
+        ]
+    )
+
     print_system(comment)
-    conversation.add_system(str(comment))
+
+    conversation = state.conversation
+    context_state.conversation.add_system(f"Pull Request created successfully:\n{pr}")
+    codebase = None
 
     while True:
         ai_action = contributor.next_action(
-            context_state.conversation, conversation, pr.number
+            context_state.conversation, conversation, comment
         )
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
@@ -119,7 +119,7 @@ def run(context_state: State, repo: str, state: State) -> None:
 
     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
     acted_comments.append(comment.id)
-    state.persist()
+    state.final_persist(f"{context_state.name.split('-')[0]}_{pr.number}")
 
 
 if __name__ == "__main__":

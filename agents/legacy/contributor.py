@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 from agents.coder import File
 from ai import llm
-from tools.github import GithubComment, PullRequest
+from tools.github import PullRequest
 from utils.state import Conversation
 
 
@@ -51,21 +51,22 @@ TOOLS = [
 ]
 
 
-USER_INSTRUCTIONS = """Now help me amend the PR by writing new code. No need to wait for confirmation."""
+PROMPT = """Pull Request {pr} was created successfully.
 
-USER_PROMPT = "You have a new comment in the PR:\n{comment}"
+### New instructions
+
+Amend the PR by writing new code. No need to wait for confirmation."""
 
 
 def next_action(
     conversation_context: Conversation,
     conversation: Conversation,
-    comment: GithubComment,
+    pr_number: int,
 ):
     next = llm.stream_next(
         conversation_context
-        + [{"role": "user", "content": USER_INSTRUCTIONS}]
-        + conversation
-        + [{"role": "user", "content": USER_PROMPT.format(comment=comment)}],
+        + [{"role": "user", "content": PROMPT.format(pr=pr_number)}]
+        + conversation,
         tools=TOOLS,
     )
     return next
