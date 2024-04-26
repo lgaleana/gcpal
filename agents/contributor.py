@@ -2,9 +2,9 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from agents.coder import File
+from agents.coder import File, SYSTEM_PROMPT
 from ai import llm
-from tools.github import GithubComment, PullRequest
+from tools.github import GithubFile, PullRequest
 from utils.state import Conversation
 
 
@@ -53,19 +53,24 @@ TOOLS = [
 
 USER_INSTRUCTIONS = """Now help me amend the PR by writing new code. No need to wait for confirmation."""
 
-USER_PROMPT = "You have a new comment in the PR:\n{comment}"
-
 
 def next_action(
     conversation_context: Conversation,
     conversation: Conversation,
-    comment: GithubComment,
+    repo_files: List[Optional[GithubFile]],
 ):
     next = llm.stream_next(
-        conversation_context
+        [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT.format(
+                    codebase="\n".join(str(f) for f in repo_files)
+                ),
+            }
+        ]
+        + conversation_context
         + [{"role": "user", "content": USER_INSTRUCTIONS}]
-        + conversation
-        + [{"role": "user", "content": USER_PROMPT.format(comment=comment)}],
+        + conversation,
         tools=TOOLS,
     )
     return next

@@ -11,7 +11,7 @@ from ai_tools import sumamrize_test_failure
 from tools import github
 from tools import jira
 from tools.docker.commands import DockerRunner
-from utils.io import print_system
+from utils.io import print_system, user_input
 from utils.state import Conversation, State
 from workflows.actions.coder_actions import create_pr, rollback, TestsError
 from workflows.plan_project import AGENT as PM_AGENT
@@ -47,8 +47,8 @@ def run(state: State, repo: str, ticket_key: str) -> None:
         ai_action = coder.write_pr(active_ticket, conversation, codebase)
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
-            # user_message = user_input()
-            # conversation.add_user(user_message)
+            user_message = user_input()
+            conversation.add_user(user_message)
         else:
             tool = coder.WritePRParams.model_validate(ai_action.arguments)
             print_system(tool)

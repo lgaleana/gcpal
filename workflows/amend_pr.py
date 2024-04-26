@@ -25,6 +25,7 @@ def run(context_state: State, repo: str, state: State) -> None:
 
     pr = context_state.pr
     acted_comments = state.acted_comments
+    context_state.conversation.add_system(f"Pull Request created successfully:\n{pr}")
 
     comments = github.get_comments(
         pr.number,
@@ -37,6 +38,8 @@ def run(context_state: State, repo: str, state: State) -> None:
         return
     comment = comments[0]
 
+    codebase = github.get_repo_files(repo=repo)
+
     docker = DockerRunner(
         startup_commands=[
             f"cd /home/{repo}",
@@ -47,15 +50,15 @@ def run(context_state: State, repo: str, state: State) -> None:
         ]
     )
 
-    print_system(comment)
-
     conversation = state.conversation
-    context_state.conversation.add_system(f"Pull Request created successfully:\n{pr}")
-    codebase = None
+    conversation.add_user(f"You have a new comment in the PR:\n{comment}")
+    print_system(comment)
 
     while True:
         ai_action = contributor.next_action(
-            context_state.conversation, conversation, comment
+            conversation_context=context_state.conversation,
+            conversation=conversation,
+            repo_files=codebase,
         )
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
@@ -99,9 +102,6 @@ def run(context_state: State, repo: str, state: State) -> None:
                 rollback(pr, docker)
 
                 if isinstance(e, TestsError):
-                    if not codebase:
-                        codebase = github.get_repo_files(repo=repo)
-
                     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
                     conversation.add_tool_response(
                         tool_id=ai_action.id,

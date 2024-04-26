@@ -66,10 +66,11 @@ SYSTEM_PROMPT = """You are a helpful AI assistant that writes code and creates P
 
 ### Requirements
 
-1. Follow the best software engineering practices.
-2. Consider the existing codebase.
-3. Follow the best practices to organize your files.
-4. Include unit tests for every change you make. Use mocked data."""
+1. It's ok to ask clarifying questions.
+2. Use the best software engineering practices.
+3. Use the best coding practices.
+4. Use the best practices to organize your files.
+5. Include unit tests for every change you make. Use mocked data."""
 
 
 USER_PROMPT = """Write a PR for this ticket:
