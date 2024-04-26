@@ -3,7 +3,7 @@ import subprocess
 import threading
 from pydantic import BaseModel
 from queue import Empty, Queue
-from typing import IO, ClassVar, List, Type, Union
+from typing import ClassVar, List, Type, Union
 
 from utils.io import print_system
 from utils import state
@@ -133,19 +133,13 @@ class DockerRunner:
         return self.execute([command])[0]
 
     def startup(self) -> List[Command]:
-        return (
-            self.execute(
-                [
-                    "eval $(ssh-agent -s)",
-                    "ssh-add /root/.ssh/github",
-                    "ssh-keyscan -H github.com >> /root/.ssh/known_hosts",
-                ]
-            )
-            + self.adhoc_startup()
-        )
-
-    def adhoc_startup(self) -> List[Command]:
-        return self.execute(self.adhoc_commands)
+        return self.execute(
+            [
+                "eval $(ssh-agent -s)",
+                "ssh-add /root/.ssh/github",
+                "ssh-keyscan -H github.com >> /root/.ssh/known_hosts",
+            ]
+        ) + self.execute(self.adhoc_commands)
 
 
 def _persist_command(command: Command) -> None:

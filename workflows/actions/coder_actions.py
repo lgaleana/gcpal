@@ -4,8 +4,9 @@ from typing import Union
 from agents.coder import WritePRParams
 from agents.contributor import AmendPRParams
 from tools import github
-from tools.files import create_files, DIFFS_DIR
-from tools.docker import commands, container
+from tools.docker import container
+from tools.docker.commands import DockerRunner
+from tools.tmp import create_files, DIFFS_DIR
 from utils.io import print_system
 from utils.state import CommandStatus
 
@@ -21,7 +22,7 @@ class TestsError(PRError):
 def create_or_edit_pr(
     tool: Union[WritePRParams, AmendPRParams],
     state_name: str,
-    docker: commands.DockerRunner,
+    docker: DockerRunner,
     repo: str,
 ) -> github.PullRequest:
     # Create files locally first
@@ -98,7 +99,7 @@ def create_or_edit_pr(
     return pr
 
 
-def rollback(branch: str, docker: commands.DockerRunner) -> None:
+def rollback(branch: str, docker: DockerRunner) -> None:
     print_system()
     print_system("!!!!! Rolling back...")
     docker.execute(
@@ -117,6 +118,6 @@ def rollback(branch: str, docker: commands.DockerRunner) -> None:
 
 
 def create_pr(
-    tool: WritePRParams, state_name: str, docker: commands.DockerRunner, repo: str
+    tool: WritePRParams, state_name: str, docker: DockerRunner, repo: str
 ) -> github.PullRequest:
     return create_or_edit_pr(tool, state_name, docker, repo)

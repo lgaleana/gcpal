@@ -58,9 +58,23 @@ TOOLS = [
 ]
 
 
-SYSTEM_PROMPT = """You are a helpful AI assistant that writes code and creates Pull Requests.
+PROMPT = """You are a helpful AI assistant that writes code and creates Pull Requests.
 
-### You are working on the following codebase
+You are working in the following project
+
+### Project description
+
+{project_description}
+
+### Architecture overview
+
+{project_architecture}
+
+### The ticket assigned to you
+
+{ticket}
+
+### Codebase
 
 {codebase}
 
@@ -68,33 +82,31 @@ SYSTEM_PROMPT = """You are a helpful AI assistant that writes code and creates P
 
 1. Follow the best software engineering practices.
 2. Consider the existing codebase.
-3. Follow the best practices to organize your files.
-4. Include unit tests for every change you make. Use mocked data."""
+3. Follow the best practices to organize your file structure.
+4. Remember to add a new line at the end of each file.
+5. Use absolute imports.
+6. Include unit tests for every change you make. Use mocked data.
+"""
 
 
-USER_PROMPT = """Write a PR for this ticket:
-
-{ticket}"""
-
-
-def write_pr(
-    ticket: Issue, conversation: Conversation, repo_files: List[Optional[GithubFile]]
+def next_action(
+    ticket: Issue,
+    conversation: Conversation,
+    project_description: str,
+    project_architecture: str,
+    repo_files: List[Optional[GithubFile]],
 ):
     next = llm.stream_next(
         [
             {
-                "role": "system",
-                "content": SYSTEM_PROMPT.format(
-                    codebase="\n".join(str(f) for f in repo_files)
-                ),
-            },
-            {
                 "role": "user",
-                "content": USER_PROMPT.format(
+                "content": PROMPT.format(
+                    project_description=project_description,
+                    project_architecture=project_architecture,
                     ticket=ticket,
                     codebase="\n".join(str(f) for f in repo_files),
                 ),
-            },
+            }
         ]
         + conversation,
         tools=TOOLS,

@@ -10,7 +10,7 @@ AUTH = HTTPBasicAuth(os.environ["JIRA_EMAIL"], os.environ["JIRA_API_KEY"])
 HEADERS = {"Accept": "application/json", "Content-Type": "application/json"}
 
 
-IssueType = Literal["Epic", "Story", "Subtask"]
+IssueType = Literal["Epic", "Story", "Task", "Subtask"]
 
 
 class Issue(BaseModel):
@@ -68,7 +68,9 @@ def create_issue(
 
 
 def get_all_issues(project_key: str) -> List[Issue]:
-    jql_query = f"project='{project_key}' AND issuetype in ('Epic', 'Story', 'Subtask')"
+    jql_query = (
+        f"project='{project_key}' AND issuetype in ('Epic', 'Story', 'Task', 'Subtask')"
+    )
     response = requests.get(
         f"{DOMAIN}/search?jql={jql_query}", headers=HEADERS, auth=AUTH
     )

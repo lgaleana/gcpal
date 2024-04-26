@@ -22,13 +22,16 @@ AGENT = "coder"
 TOOL_FAIL_MSG = "Fix the tests and re-create the PR. Go ahead."
 
 
-def run(state: State, repo: str, ticket_key: str) -> None:
+def run(context_state: State, state: State, repo: str, ticket_key: str) -> None:
+    assert context_state.project_description
+    assert context_state.project_architecture
+
     tickets = jira.get_all_issues(ticket_key.split("-")[0])
     codebase = github.get_repo_files(repo=repo)
     active_ticket = jira.find_issue(tickets, ticket_key)
     assert active_ticket
     assert (
-        active_ticket.type_ in ["Subtask"]
+        active_ticket.type_ == f"Subtask"
     ), "Tickets must be subtasks, found :: {active_ticket.type_}"
 
     docker = DockerRunner(
@@ -94,6 +97,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("ticket", type=str)
     parser.add_argument("repo", type=str)
+    parser.add_argument("context", type=str)
     parser.add_argument("--name", type=str, default=None)
     args = parser.parse_args()
 
@@ -104,5 +108,6 @@ if __name__ == "__main__":
         state = State(
             name=str(time.time()), agent=AGENT, conversation=Conversation(), pr=None
         )
+    context_state = State.load(args.context, PM_AGENT)
 
-    run(state, repo=args.repo, ticket_key=args.ticket)
+    run(context_state, state, repo=args.repo, ticket_key=args.ticket)
