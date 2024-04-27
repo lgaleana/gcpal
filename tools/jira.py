@@ -82,7 +82,9 @@ def get_all_issues(project_key: str) -> List[Issue]:
         lines = []
         if issue["fields"]["description"]:
             for paragraph in issue["fields"]["description"]["content"]:
-                lines.append(" ".join(c["text"] for c in paragraph["content"]))
+                lines.append(
+                    " ".join(c["text"] for c in paragraph["content"] if "text" in c)
+                )
         issues.append(
             Issue(
                 type_=issue["fields"]["issuetype"]["name"],

@@ -16,7 +16,11 @@ def rollback(pr: PullRequest, docker: DockerRunner) -> None:
             "git clean -fd",  # roll back files
         ]
     )
-    if docker.execute_one("git rev-parse HEAD") != pr.commits[-1]:
+    rev = docker.execute_one("git rev-parse HEAD").output_str()
+    print(rev)
+    print(pr.commits)
+    breakpoint()
+    if rev != pr.commits[-1]:
         # We need to revert the last commit
         docker.execute(
             [

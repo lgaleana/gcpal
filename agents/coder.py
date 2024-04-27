@@ -59,6 +59,7 @@ TOOLS = [
 
 
 SYSTEM_PROMPT = """You are a helpful AI assistant that writes code and creates Pull Requests.
+You are an expert with Python and FastAPI.
 
 ### You are working on the following codebase
 
@@ -66,10 +67,10 @@ SYSTEM_PROMPT = """You are a helpful AI assistant that writes code and creates P
 
 ### Requirements
 
-1. It's ok to ask clarifying questions.
-2. Use the best software engineering practices.
-3. Use the best coding practices.
-4. Use the best practices to organize your files.
+1. Follow the PEP 8 style guide.
+2. Use the best Python and FastAPI cpractices.
+3. Use the FastAPI best practices to organize your files
+4. You must only create 1 PR at a time. If there is something to be fixed, amend the existing PR.
 5. Include unit tests for every change you make. Use mocked data."""
 
 
@@ -79,7 +80,10 @@ USER_PROMPT = """Write a PR for this ticket:
 
 
 def write_pr(
-    ticket: Issue, conversation: Conversation, repo_files: List[Optional[GithubFile]]
+    ticket: Issue,
+    conversation: Conversation,
+    repo_files: List[Optional[GithubFile]],
+    # code_suggestion: str,
 ):
     next = llm.stream_next(
         [
@@ -94,6 +98,7 @@ def write_pr(
                 "content": USER_PROMPT.format(
                     ticket=ticket,
                     codebase="\n".join(str(f) for f in repo_files),
+                    # suggestion=code_suggestion,
                 ),
             },
         ]

@@ -16,7 +16,7 @@ class RawTool(BaseModel):
 client = OpenAI()
 
 
-MODEL = "gpt-4"
+MODEL = "gpt-4-turbo"
 TEMPERATURE = 0.0
 
 
@@ -83,6 +83,12 @@ def stream_next(
     )
 
     first_chunk = next(response)
+    while (
+        first_chunk.choices[0].delta.content is None
+        and first_chunk.choices[0].delta.tool_calls is None
+    ):
+        first_chunk = next(response)
+
     if first_chunk.choices[0].delta.content is not None:
         return stream_text(first_chunk, response)
     return collect_tool(first_chunk, response)
@@ -104,6 +110,7 @@ def collect_tool(first_chunk, response) -> RawTool:
     tool_name = first_chunk.choices[0].delta.tool_calls[0].function.name
     arguments = first_chunk.choices[0].delta.tool_calls[0].function.arguments
     print_assistant(".", end="", flush=True)
+
     for chunk in response:
         if chunk.choices[0].delta.tool_calls:
             arguments += chunk.choices[0].delta.tool_calls[0].function.arguments
@@ -114,7 +121,12 @@ def collect_tool(first_chunk, response) -> RawTool:
     arguments = arguments.replace(r"\\'", "<ESCAPED_QUOTE>").replace(
         r"\'", "<ESCAPED_QUOTE>"
     )
-    arg_dict = json.loads(arguments)
+    try:
+        arg_dict = json.loads(arguments)
+    except Exception as e:
+        print(arguments)
+        breakpoint()
+        raise e
     arg_dict = unesacape_str(arg_dict)
     # print(json.dumps(arg_dict, indent=2))
 

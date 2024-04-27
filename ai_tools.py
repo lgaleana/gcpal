@@ -4,6 +4,7 @@ from agents.coder import WritePRParams
 from agents.contributor import AmendPRParams
 from ai import llm
 from tools.github import GithubFile
+from tools.jira import Issue
 from utils.state import Conversation
 
 from pydantic import BaseModel, Field
@@ -99,3 +100,28 @@ def summarize_architecture(conversation: Conversation) -> SummaryParams:
     )
     assert isinstance(summary, llm.RawTool)
     return SummaryParams.model_validate(summary.arguments)
+
+
+def suggest_code(ticket: Issue, repo_files: List[Optional[GithubFile]]) -> str:
+    codebase = "\n".join(str(f) for f in repo_files)
+
+    PROMPT = f"""I have to finish the following Jira ticket:
+
+    {ticket.title} - {ticket.description}
+
+    The code will be added to this codebase:
+
+    {codebase}
+
+    In 1 or 2 sentences, suggest me what code to write. Provide no code examples."""
+
+    suggestion = llm.stream_next(
+        [
+            {
+                "role": "user",
+                "content": PROMPT,
+            }
+        ]
+    )
+    assert isinstance(suggestion, str)
+    return suggestion

@@ -51,7 +51,9 @@ TOOLS = [
 ]
 
 
-USER_INSTRUCTIONS = """Now help me amend the PR by writing new code. No need to wait for confirmation."""
+USER_INSTRUCTIONS = (
+    """Now help me amend the existing PR. No need to wait for confirmation."""
+)
 
 
 def next_action(

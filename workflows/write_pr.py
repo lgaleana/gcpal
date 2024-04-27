@@ -11,15 +11,14 @@ from ai_tools import sumamrize_test_failure
 from tools import github
 from tools import jira
 from tools.docker.commands import DockerRunner
-from utils.io import print_system, user_input
+from utils.io import print_system
 from utils.state import Conversation, State
 from workflows.actions.coder_actions import create_pr, rollback, TestsError
-from workflows.plan_project import AGENT as PM_AGENT
 
 
 AGENT = "coder"
 
-TOOL_FAIL_MSG = "Fix the tests and re-create the PR. Go ahead."
+TOOL_FAIL_MSG = "The commit was reverted. Fix the tests and re-create the PR. Go ahead."
 
 
 def run(state: State, repo: str, ticket_key: str) -> None:
@@ -43,12 +42,14 @@ def run(state: State, repo: str, ticket_key: str) -> None:
 
     conversation = state.conversation
 
+    # code_suggestion = suggest_code(active_ticket, codebase)
+
     while True:
         ai_action = coder.write_pr(active_ticket, conversation, codebase)
         if isinstance(ai_action, str):
             conversation.add_assistant(ai_action)
-            user_message = user_input()
-            conversation.add_user(user_message)
+            # user_message = user_input()
+            # conversation.add_user(user_message)
         else:
             tool = coder.WritePRParams.model_validate(ai_action.arguments)
             print_system(tool)
@@ -69,6 +70,8 @@ def run(state: State, repo: str, ticket_key: str) -> None:
                 print_system()
 
                 rollback(tool.git_branch, docker)
+                assert state.pr
+                state.pr.commits.pop()
 
                 if isinstance(e, TestsError):
                     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)

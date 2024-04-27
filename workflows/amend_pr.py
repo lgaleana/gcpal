@@ -11,7 +11,7 @@ from agents import contributor
 from workflows.write_pr import AGENT as CODER_AGENT, TOOL_FAIL_MSG
 from tools import github
 from tools.docker.commands import DockerRunner
-from utils.io import user_input, print_system
+from utils.io import print_system
 from utils.state import Conversation, State
 from workflows.actions.coder_actions import TestsError
 from workflows.actions.contributor_actions import edit_pr, rollback
@@ -21,9 +21,10 @@ AGENT = "contributor"
 
 
 def run(context_state: State, repo: str, state: State) -> None:
-    assert context_state.pr
+    assert state.pr
 
-    pr = context_state.pr
+    pr = state.pr
+    state.pr = pr
     acted_comments = state.acted_comments
     context_state.conversation.add_system(f"Pull Request created successfully:\n{pr}")
 
@@ -137,5 +138,6 @@ if __name__ == "__main__":
             name=str(time.time()), agent=AGENT, conversation=Conversation(), pr=None
         )
     context_state = State.load(args.context, CODER_AGENT)
+    state.pr = context_state.pr
 
     run(context_state, args.repo, state)
