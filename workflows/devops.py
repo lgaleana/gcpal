@@ -7,7 +7,6 @@ load_dotenv()
 
 from agents import devops
 from tools import github
-from tools import jira
 from tools.docker.commands import DockerRunner
 from utils.io import user_input, print_system
 from utils.state import CommandStatus, Conversation, State
@@ -16,11 +15,8 @@ from utils.state import CommandStatus, Conversation, State
 AGENT = "devops"
 
 
-def run(state: State, repo: str, ticket_key: str) -> None:
-    tickets = jira.get_all_issues(ticket_key.split("-")[0])
+def run(state: State, repo: str) -> None:
     codebase = github.get_repo_files(repo=repo)
-    active_ticket = jira.find_issue(tickets, ticket_key)
-    assert active_ticket
     startup_commands = [
         f"cd /home/{repo}",
         "source venv/bin/activate",
@@ -38,7 +34,6 @@ def run(state: State, repo: str, ticket_key: str) -> None:
 
     while True:
         ai_action = devops.next_action(
-            ticket=active_ticket,
             conversation=conversation,
             repo=repo,
             repo_files=codebase,
@@ -49,10 +44,13 @@ def run(state: State, repo: str, ticket_key: str) -> None:
             user_message = user_input()
             conversation.add_user(user_message)
         else:
-            tool = devops.ExecuteShellParams.model_validate(ai_action.arguments)
+            tools = [
+                devops.ExecuteShellParams.model_validate(a) for a in ai_action.arguments
+            ]
             conversation.add_tool(tool=ai_action)
 
-            print_system("\n".join(tool.commands))
+            commands = [c for t in tools for c in t.commands]
+            print_system("\n".join(commands))
             user_message = user_input()
             if user_message != "y":
                 conversation.add_tool_response(
@@ -61,11 +59,11 @@ def run(state: State, repo: str, ticket_key: str) -> None:
                 )
                 continue
 
-            commands = docker.execute(tool.commands)
+            commands = docker.execute(commands)
 
             last_command = commands[-1]
             output_str = "\n".join([c.output_str() for c in commands])
-            if last_command.status == CommandStatus.ERROR or "ERROR: " in output_str:
+            if last_command.status == CommandStatus.ERROR:
                 conversation.add_tool_response(
                     tool_id=ai_action.id,
                     message=f"ERROR :: {output_str}",
@@ -99,7 +97,6 @@ def run(state: State, repo: str, ticket_key: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("ticket", type=str)
     parser.add_argument("repo", type=str)
     parser.add_argument("--name", type=str, default=None)
     args = parser.parse_args()
@@ -112,4 +109,4 @@ if __name__ == "__main__":
             name=str(time.time()), agent=AGENT, conversation=Conversation(), pr=None
         )
 
-    run(state, repo=args.repo, ticket_key=args.ticket)
+    run(state, repo=args.repo)

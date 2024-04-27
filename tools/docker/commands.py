@@ -26,7 +26,7 @@ process = subprocess.Popen(
 
 
 COMMAND_EXECUTED = "COMMAND_EXECUTED"
-ERROR_PREFIX = "ERROR: "
+ERROR_PREFIXES = ["ERROR:", "fatal:"]
 TIMEOUT = 5
 
 
@@ -83,7 +83,7 @@ class DockerRunner:
                 while COMMAND_EXECUTED not in output.msg:
                     msgs.append(output.msg)
                     print_system(output.msg)
-                    if isinstance(output, StdErr) and ERROR_PREFIX in output.msg:
+                    if isinstance(output, StdErr) and _confirm_error(output.msg):
                         # Regular outputs sometimes get sent to stderr
                         # Real errors usually have an ERROR:  prefix
                         status = CommandStatus.ERROR
@@ -140,6 +140,10 @@ class DockerRunner:
                 "ssh-keyscan -H github.com >> /root/.ssh/known_hosts",
             ]
         ) + self.execute(self.adhoc_commands)
+
+
+def _confirm_error(msg: str) -> bool:
+    return any(e in msg for e in ERROR_PREFIXES)
 
 
 def _persist_command(command: Command) -> None:

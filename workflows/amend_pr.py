@@ -82,7 +82,10 @@ def run(context_state: State, repo: str, state: State) -> None:
             #     print_system("Comment not saved.")
             #     break
         else:
-            tool = contributor.AmendPRParams(original=pr, **ai_action.arguments)
+            arguments = ai_action.arguments[0]
+            for arg in ai_action.arguments[1:]:
+                arguments.update(arg)
+            tool = contributor.AmendPRParams(original=pr, **arguments)
             print_system(tool)
             conversation.add_tool(tool=ai_action)
 

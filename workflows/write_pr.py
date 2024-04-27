@@ -51,7 +51,10 @@ def run(state: State, repo: str, ticket_key: str) -> None:
             # user_message = user_input()
             # conversation.add_user(user_message)
         else:
-            tool = coder.WritePRParams.model_validate(ai_action.arguments)
+            arguments = ai_action.arguments[0]
+            for arg in ai_action.arguments[1:]:
+                arguments.update(arg)
+            tool = coder.WritePRParams.model_validate(ai_action.arguments[0])
             print_system(tool)
             conversation.add_tool(tool=ai_action)
 
@@ -70,8 +73,8 @@ def run(state: State, repo: str, ticket_key: str) -> None:
                 print_system()
 
                 rollback(tool.git_branch, docker)
-                assert state.pr
-                state.pr.commits.pop()
+                if state.pr:
+                    state.pr.commits.pop()
 
                 if isinstance(e, TestsError):
                     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)

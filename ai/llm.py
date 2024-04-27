@@ -10,7 +10,7 @@ from utils.io import print_assistant
 class RawTool(BaseModel):
     id: str
     name: str
-    arguments: Dict[str, Any]
+    arguments: List[Dict[str, Any]]
 
 
 client = OpenAI()
@@ -111,29 +111,37 @@ def collect_tool(first_chunk, response) -> RawTool:
     arguments = first_chunk.choices[0].delta.tool_calls[0].function.arguments
     print_assistant(".", end="", flush=True)
 
+    args = []
+    current_index = 0
     for chunk in response:
         if chunk.choices[0].delta.tool_calls:
-            arguments += chunk.choices[0].delta.tool_calls[0].function.arguments
-        print_assistant(".", end="", flush=True)
-    print_assistant()
+            if chunk.choices[0].delta.tool_calls[0].index != current_index:
+                arguments = arguments.replace(r"\\'", "<ESCAPED_QUOTE>").replace(
+                    r"\'", "<ESCAPED_QUOTE>"
+                )
+                arg_dict = json.loads(arguments)
+                arg_dict = unesacape_str(arg_dict)
+                args.append(arg_dict)
 
-    # print(arguments)
+                current_index = chunk.choices[0].delta.tool_calls[0].index
+                arguments = ""
+
+            arguments += chunk.choices[0].delta.tool_calls[0].function.arguments
+
+        print_assistant(".", end="", flush=True)
     arguments = arguments.replace(r"\\'", "<ESCAPED_QUOTE>").replace(
         r"\'", "<ESCAPED_QUOTE>"
     )
-    try:
-        arg_dict = json.loads(arguments)
-    except Exception as e:
-        print(arguments)
-        breakpoint()
-        raise e
+    arg_dict = json.loads(arguments)
     arg_dict = unesacape_str(arg_dict)
-    # print(json.dumps(arg_dict, indent=2))
+    args.append(arg_dict)
 
-    return RawTool(id=tool_id, name=tool_name, arguments=arg_dict)
+    print_assistant()
+
+    return RawTool(id=tool_id, name=tool_name, arguments=args)
 
 
-def unesacape_str(val: Any) -> Any:
+def unesacape_str(val) -> Any:
     if isinstance(val, str):
         return val.replace("<ESCAPED_QUOTE>", "\\'")
     if isinstance(val, List):

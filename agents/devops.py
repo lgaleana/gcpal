@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 
 from ai import llm
 from tools.github import GithubFile
-from tools.jira import Issue
 from utils.state import Command, Conversation
 
 
@@ -34,10 +33,6 @@ PROMPT = """You are a helpful AI assistant that helps software engineers with de
 
 You are inside a docker container running ubuntu.
 You have access to Google Cloud Platform. You are using the service account gcpal-881, that has the role Editor.
-
-### The ticket assigned to you
-
-{ticket}
 
 ### Codebase
 
@@ -70,7 +65,6 @@ gh
 
 
 def next_action(
-    ticket: Issue,
     conversation: Conversation,
     repo: str,
     repo_files: List[Optional[GithubFile]],
@@ -81,13 +75,16 @@ def next_action(
             {
                 "role": "system",
                 "content": PROMPT.format(
-                    ticket=ticket,
                     repo=repo,
                     codebase="\n".join(str(f) for f in repo_files),
                     commands="\n".join(
                         [f"# {c.command}\n{c.output_str()}" for c in command_list]
                     ),
                 ),
+            },
+            {
+                "role": "user",
+                "content": "Hi",
             },
         ]
         + conversation,
