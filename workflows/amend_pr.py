@@ -8,7 +8,7 @@ load_dotenv()
 
 from ai_tools import sumamrize_test_failure, there_is_followup
 from agents import contributor
-from workflows.write_pr import AGENT as CODER_AGENT, TOOL_FAIL_MSG
+from workflows.write_pr import AGENT as CODER_AGENT, TOOL_FAIL_MSG, merge_prs
 from tools import github
 from tools.docker.commands import DockerRunner
 from utils.io import print_system
@@ -82,10 +82,11 @@ def run(context_state: State, repo: str, state: State) -> None:
             #     print_system("Comment not saved.")
             #     break
         else:
-            arguments = ai_action.arguments[0]
-            for arg in ai_action.arguments[1:]:
-                arguments.update(arg)
-            tool = contributor.AmendPRParams(original=pr, **arguments)
+            if len(ai_action.arguments) != 1:
+                print(ai_action.arguments)
+                breakpoint()
+            arguments = merge_prs(ai_action.arguments)
+            tool = contributor.AmendPRParams(original=pr, **arguments.dict())
             print_system(tool)
             conversation.add_tool(tool=ai_action)
 

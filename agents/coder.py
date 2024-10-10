@@ -68,9 +68,10 @@ You are an expert with Python and FastAPI.
 ### Requirements
 
 1. Follow the PEP 8 style guide.
-2. Use the best Python and FastAPI practices.
+2. Use the best Python and FastAPI cpractices.
 3. Use the FastAPI best practices to organize your files
-4. Include unit tests for every change you make. Use mocked data."""
+4. You must only work with 1 PR at a time. If there is something to be fixed, amend the existing PR.
+5. Include unit tests for every change you make. Use mocked data."""
 
 
 USER_PROMPT = """Write a PR for this ticket:

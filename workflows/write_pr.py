@@ -1,6 +1,7 @@
 import argparse
 import time
 import traceback
+from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 
@@ -18,7 +19,7 @@ from workflows.actions.coder_actions import create_pr, rollback, TestsError
 
 AGENT = "coder"
 
-TOOL_FAIL_MSG = "The commit was reverted. Fix the tests and re-create the PR. Go ahead."
+TOOL_FAIL_MSG = "The PR has been deleted. Fix the tests and re-create the PR. Go ahead."
 
 
 def run(state: State, repo: str, ticket_key: str) -> None:
@@ -51,10 +52,7 @@ def run(state: State, repo: str, ticket_key: str) -> None:
             # user_message = user_input()
             # conversation.add_user(user_message)
         else:
-            arguments = ai_action.arguments[0]
-            for arg in ai_action.arguments[1:]:
-                arguments.update(arg)
-            tool = coder.WritePRParams.model_validate(ai_action.arguments[0])
+            tool = merge_prs(ai_action.arguments)
             print_system(tool)
             conversation.add_tool(tool=ai_action)
 
@@ -94,6 +92,37 @@ def run(state: State, repo: str, ticket_key: str) -> None:
 
     conversation.remove_last_failed_tool(TOOL_FAIL_MSG)
     state.final_persist(ticket_key)
+
+
+def merge_prs(prs: List[Dict[str, Any]], cls):
+    seen_paths = set()
+    seen_test_paths = set()
+    seen_deleted_paths = set()
+    canon_pr = None
+
+    def update_files(files: List[coder.File], canon_files: List[coder.File], seen):
+        for file in files:
+            assert file.path not in seen
+            seen.add(file.path)
+            canon_files.append(file)
+
+    for pr in prs:
+        if not canon_pr:
+            canon_pr = pr
+            continue
+
+        canon_pr["title"] = pr["title"]
+        canon_pr["description"] = pr["description"]
+        update_files(pr["files"], canon_pr["files"], seen_paths)
+        update_files(pr["test_files"], canon_pr["test_files"], seen_test_paths)
+        for path in pr["deleted_files"]:
+            assert path not in seen_deleted_paths
+            seen_deleted_paths.add(path)
+            canon_pr["deleted_files"].append(path)
+        canon_pr["git_branch"] = pr["git_branch"]
+
+    assert canon_pr
+    return canon_pr
 
 
 if __name__ == "__main__":
